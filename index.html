@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>IrrigaSense — Monitoramento</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <header class="topbar">
+
+        <div class="brand">
+
+            <div class="brand-icon">
+                💧
+            </div>
+
+            <div>
+                <h1>IrrigaSense</h1>
+                <span>Monitoramento inteligente de irrigação</span>
+            </div>
+
+        </div>
+
+        <div class="connection">
+
+            <span id="connectionDot" class="dot offline"></span>
+
+            <span id="connectionText">
+                Desconectado
+            </span>
+
+        </div>
+
+    </header>
+
+
+    <main class="container">
+
+        <!-- HERO -->
+
+        <section class="hero">
+
+            <div>
+
+                <p class="eyebrow">
+                    PAINEL DE CONTROLE
+                </p>
+
+                <h2>
+                    Seu sistema de irrigação em tempo real
+                </h2>
+
+                <p class="subtitle">
+                    Controle a bomba e acompanhe a vazão diretamente pelo navegador.
+                </p>
+
+            </div>
+
+
+            <div class="mode-box">
+
+                <span>Modo</span>
+
+                <strong id="modeText">
+                    Demonstração
+                </strong>
+
+                <small>
+                    Ative o ESP32 quando estiver pronto
+                </small>
+
+            </div>
+
+        </section>
+
+
+        <!-- CARDS PRINCIPAIS -->
+
+        <section class="cards">
+
+
+            <!-- VAZÃO -->
+
+            <article class="card metric-card">
+
+                <div class="card-title">
+
+                    <span>
+                        Vazão atual
+                    </span>
+
+                    <span class="icon">
+                        ≈
+                    </span>
+
+                </div>
+
+
+                <div class="metric">
+
+                    <strong id="flowRate">
+                        0,00
+                    </strong>
+
+                    <span>
+                        L/min
+                    </span>
+
+                </div>
+
+
+                <div class="progress">
+
+                    <div id="flowBar"></div>
+
+                </div>
+
+
+                <small id="flowStatus">
+                    Aguardando fluxo
+                </small>
+
+            </article>
+
+
+            <!-- CONSUMO -->
+
+            <article class="card metric-card">
+
+                <div class="card-title">
+
+                    <span>
+                        Consumo da sessão
+                    </span>
+
+                    <span class="icon">
+                        ◉
+                    </span>
+
+                </div>
+
+
+                <div class="metric">
+
+                    <strong id="totalLiters">
+                        0,00
+                    </strong>
+
+                    <span>
+                        L
+                    </span>
+
+                </div>
+
+
+                <small>
+                    Volume acumulado
+                </small>
+
+            </article>
+
+
+            <!-- TEMPO -->
+
+            <article class="card metric-card">
+
+                <div class="card-title">
+
+                    <span>
+                        Tempo da bomba
+                    </span>
+
+                    <span class="icon">
+                        ◷
+                    </span>
+
+                </div>
+
+
+                <div class="metric">
+
+                    <strong id="pumpTime">
+                        00:00:00
+                    </strong>
+
+                </div>
+
+
+                <small id="pumpTimeLabel">
+                    Bomba desligada
+                </small>
+
+            </article>
+
+
+            <!-- BOMBA -->
+
+            <article class="card pump-card">
+
+                <div class="card-title">
+
+                    <span>
+                        Controle da bomba
+                    </span>
+
+                    <span id="pumpBadge" class="badge off">
+                        DESLIGADA
+                    </span>
+
+                </div>
+
+
+                <div class="pump-control">
+
+                    <div id="pumpOrb" class="pump-orb off">
+                        ◉
+                    </div>
+
+
+                    <div>
+
+                        <strong id="pumpStatus">
+                            Bomba desligada
+                        </strong>
+
+                        <small>
+                            Controle manual
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                <div class="buttons">
+
+                    <button id="btnOn" class="btn btn-on">
+                        Ligar bomba
+                    </button>
+
+
+                    <button id="btnOff" class="btn btn-off">
+                        Desligar
+                    </button>
+
+                </div>
+
+            </article>
+
+        </section>
+
+
+        <!-- GRÁFICO + ALERTAS -->
+
+        <section class="grid">
+
+
+            <!-- GRÁFICO -->
+
+            <article class="card chart-card">
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <h3>
+                            Vazão em tempo real
+                        </h3>
+
+                        <span>
+                            Últimos 60 segundos
+                        </span>
+
+                    </div>
+
+
+                    <button id="btnClearChart" class="ghost-btn">
+                        Limpar gráfico
+                    </button>
+
+                </div>
+
+
+                <div class="chart-wrap">
+
+                    <canvas id="flowChart"></canvas>
+
+                </div>
+
+            </article>
+
+
+            <!-- ALERTAS -->
+
+            <article class="card alerts-card">
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <h3>
+                            Monitoramento
+                        </h3>
+
+                        <span>
+                            Diagnóstico automático
+                        </span>
+
+                    </div>
+
+
+                    <span id="alertCount" class="alert-count">
+                        0
+                    </span>
+
+                </div>
+
+
+                <div id="alertList" class="alert-list">
+
+                    <div class="empty-alert">
+
+                        <span>
+                            ✓
+                        </span>
+
+                        <div>
+
+                            <strong>
+                                Nenhum alerta
+                            </strong>
+
+                            <small>
+                                O sistema está aguardando dados.
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="limits">
+
+                    <div>
+
+                        <span>
+                            Vazão mínima
+                        </span>
+
+                        <strong id="minLimitText">
+                            2,0 L/min
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Vazão máxima
+                        </span>
+
+                        <strong id="maxLimitText">
+                            12,0 L/min
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </article>
+
+        </section>
+
+
+        <!-- HISTÓRICO -->
+
+        <section class="card history-card">
+
+            <div class="section-heading">
+
+                <div>
+
+                    <h3>
+                        Histórico da sessão
+                    </h3>
+
+                    <span>
+                        Últimas medições recebidas
+                    </span>
+
+                </div>
+
+
+                <button id="btnReset" class="ghost-btn">
+                    Resetar sessão
+                </button>
+
+            </div>
+
+
+            <div class="table-wrap">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Horário
+                            </th>
+
+                            <th>
+                                Vazão
+                            </th>
+
+                            <th>
+                                Consumo
+                            </th>
+
+                            <th>
+                                Bomba
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="historyBody">
+
+                        <tr class="empty-row">
+
+                            <td colspan="5">
+                                Nenhuma medição recebida ainda.
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- CONFIGURAÇÕES -->
+
+        <section class="settings card">
+
+            <div class="section-heading">
+
+                <div>
+
+                    <h3>
+                        Conexão com ESP32
+                    </h3>
+
+                    <span>
+                        Configure o endereço do seu dispositivo
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="settings-grid">
+
+
+                <label>
+
+                    IP do ESP32
+
+                    <input id="espIp" type="text" value="192.168.1.100" placeholder="192.168.1.100">
+
+                </label>
+
+
+                <label>
+
+                    Vazão mínima esperada
+
+                    <input id="minFlow" type="number" value="2" min="0" step="0.1">
+
+                </label>
+
+
+                <label>
+
+                    Vazão máxima esperada
+
+                    <input id="maxFlow" type="number" value="12" min="0" step="0.1">
+
+                </label>
+
+
+                <div class="settings-actions">
+
+                    <button id="btnConnect" class="btn btn-primary">
+                        Conectar ESP32
+                    </button>
+
+
+                    <button id="btnDemo" class="btn btn-secondary">
+                        Modo demonstração
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <footer>
+
+        <strong>IrrigaSense</strong>
+
+        · Protótipo acadêmico de monitoramento e automação de irrigação
+
+    </footer>
+
+
+    <script src="js/script.js"></script>
+
+</body>
+
+</html>
