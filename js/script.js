@@ -1,478 +1,240 @@
-// ==========================================================
-// IRRIGASENSE
-// JavaScript
-// ==========================================================
 
-
-// ==========================================================
-// VARIÁVEIS
-// ==========================================================
-
-let socket = null;
-
-let demoTimer = null;
-
-let demoMode = true;
-
-let flowRate = 0;
-
-let totalLiters = 0;
-
-let pumpOn = false;
-
-let pumpStartedAt = null;
-
-let pumpElapsedBeforeCurrentRun = 0;
-
-let history = [];
-
-let alerts = [];
-
-const MAX_POINTS = 60;
-
+/*
+==========================================================
+IRRIGASENSE
+JavaScript para comunicação com ESP32 pelo USB/Wi-Fi
+Usando a Web Serial API
+==========================================================
+*/
 
 // ==========================================================
-// ELEMENTOS HTML
+// 1. VARIÁVEIS
 // ==========================================================
 
-const $ = (id) => {
+// Guarda a conexão com o ESP32
+let porta = null;
 
-    return document.getElementById(id);
+// Guarda o leitor dos dados que vem do ESP32
+let leitor = null;
 
-};
+// Indica se o ESP32 está conectado
+let conectado = false;
 
+// Guarda a quantidade total de água utilizada
+let aguaTotal = 0;
 
-const connectionDot =
-    $("connectionDot");
+// Guarda a última vazão recebida
+let vazaoAtual = 0;
 
-const connectionText =
-    $("connectionText");
-
-const modeText =
-    $("modeText");
-
-
-const flowRateEl =
-    $("flowRate");
-
-const totalLitersEl =
-    $("totalLiters");
-
-const pumpTimeEl =
-    $("pumpTime");
-
-const pumpTimeLabel =
-    $("pumpTimeLabel");
-
-
-const flowBar =
-    $("flowBar");
-
-const flowStatus =
-    $("flowStatus");
-
-
-const pumpStatus =
-    $("pumpStatus");
-
-const pumpBadge =
-    $("pumpBadge");
-
-const pumpOrb =
-    $("pumpOrb");
-
-
-const alertList =
-    $("alertList");
-
-const alertCount =
-    $("alertCount");
-
-
-const historyBody =
-    $("historyBody");
-
-
-const espIp =
-    $("espIp");
-
-const minFlowInput =
-    $("minFlow");
-
-const maxFlowInput =
-    $("maxFlow");
-
-
-const minLimitText =
-    $("minLimitText");
-
-const maxLimitText =
-    $("maxLimitText");
+// Usado para saber quando o último dado foi recebido
+let ultimoDadoRecebido = 0;
 
 
 // ==========================================================
-// GRÁFICO
+// 2. HTML
 // ==========================================================
 
-const chartCanvas = $("flowChart");
+// Botões
+const botaoConectar = document.getElementById("conectarESP32");
+const botaoLigar = document.getElementById("ligarBomba");
+const botaoDesligar = document.getElementById("desligarBomba");
+
+// Textos
+const statusESP32 = document.getElementById("statusESP32");
+const statusBomba = document.getElementById("statusBomba");
+const vazao = document.getElementById("vazao");
+const aguaUsada = document.getElementById("aguaUsada");
+const mensagemErro = document.getElementById("mensagemErro");
 
 
-const flowChart =
-    typeof Chart === "function"
-        ? new Chart(
-            chartCanvas.getContext("2d"),
-            {
+// ==========================================================
+// 3. VERIFICAR SE O NAVEGADOR POSSUI WEB SERIAL
+// ==========================================================
 
-        type: "line",
+if (!("serial" in navigator)) {
 
-        data: {
+    if (mensagemErro) {
+        mensagemErro.textContent =
+            "Seu navegador não suporta comunicação USB/Serial com o ESP32.";
+    }
 
-            labels: [],
+    console.log("Web Serial API não disponível.");
 
-            datasets: [
-
-                {
-
-                    label:
-                        "Vazão (L/min)",
-
-                    data: [],
-
-                    borderWidth: 2,
-
-                    tension: 0.35,
-
-                    pointRadius: 0,
-
-                    fill: false
-
-                }
-
-            ]
-
-        },
+}
 
 
-        options: {
+// ==========================================================
+// 4. BOTÃO DE CONECTAR
+// ==========================================================
 
-            responsive: true,
+if (botaoConectar) {
 
-            maintainAspectRatio: false,
+    botaoConectar.addEventListener("click", conectarESP32);
 
-            animation: false,
-
-
-            scales: {
-
-                y: {
-
-                    beginAtZero: true,
-
-                    suggestedMax: 14,
-
-                    title: {
-
-                        display: true,
-
-                        text: "L/min"
-
-                    }
-
-                },
+}
 
 
-                x: {
+// ==========================================================
+// 5. CONECTAR AO ESP32
+// ==========================================================
 
-                    ticks: {
+async function conectarESP32() {
 
-                        maxTicksLimit: 8
+    try {
 
-                    }
+        // Verifica se o navegador possui Web Serial
+        if (!("serial" in navigator)) {
 
-                }
+            mostrarErro(
+                "Seu navegador não suporta Web Serial."
+            );
 
-            },
-
-
-            plugins: {
-
-                legend: {
-
-                    display: false
-
-                }
-
-            }
-
+            return;
         }
 
-            }
-        )
-        : null;
+
+        // Abre a janela para o usuário escolher o ESP32
+        porta = await navigator.serial.requestPort();
 
 
-// ==========================================================
-// FORMATAÇÃO
-// ==========================================================
-
-function formatNumber(value) {
-
-    return Number(value)
-        .toLocaleString(
-            "pt-BR",
-            {
-
-                minimumFractionDigits: 2,
-
-                maximumFractionDigits: 2
-
-            }
-        );
-
-}
+        // Abre a porta serial
+        // 115200 deve ser o mesmo valor usado no ESP32
+        await porta.open({
+            baudRate: 115200
+        });
 
 
-function formatTime(seconds) {
+        // Atualiza o estado
+        conectado = true;
 
-    seconds =
-        Math.max(
-            0,
-            Math.floor(seconds)
-        );
+        statusESP32.textContent = "ESP32 conectado";
 
-
-    const hours =
-        Math.floor(
-            seconds / 3600
-        );
+        statusESP32.classList.remove("desconectado");
+        statusESP32.classList.add("conectado");
 
 
-    const minutes =
-        Math.floor(
-            (seconds % 3600) / 60
-        );
+        mostrarErro("");
 
 
-    const secondsRest =
-        seconds % 60;
+        // Guarda o momento da conexão
+        ultimoDadoRecebido = Date.now();
 
 
-    return [
-
-        String(hours)
-            .padStart(2, "0"),
-
-        String(minutes)
-            .padStart(2, "0"),
-
-        String(secondsRest)
-            .padStart(2, "0")
-
-    ].join(":");
-
-}
+        // Começa a receber dados
+        receberDados();
 
 
-function nowTime() {
-
-    return new Date()
-        .toLocaleTimeString(
-            "pt-BR",
-            {
-
-                hour: "2-digit",
-
-                minute: "2-digit",
-
-                second: "2-digit"
-
-            }
-        );
-
-}
-
-
-// ==========================================================
-// STATUS DA CONEXÃO
-// ==========================================================
-
-function setConnection(
-    state,
-    text
-) {
-
-    connectionDot.className =
-        "dot " + state;
-
-    connectionText.textContent =
-        text;
-
-}
-
-
-function parsePumpState(value) {
-
-    if (typeof value === "string") {
-
-        return value.toLowerCase() === "true" || value === "1" || value.toLowerCase() === "on";
+        console.log("ESP32 conectado.");
 
     }
 
+    catch (erro) {
 
-    return Boolean(value);
+        console.log("Erro ao conectar:", erro);
+
+        conectado = false;
+
+        if (statusESP32) {
+            statusESP32.textContent = "ESP32 desconectado";
+        }
+
+        mostrarErro(
+            "Não foi possível conectar ao ESP32."
+        );
+
+    }
 
 }
 
 
 // ==========================================================
-// CONECTAR AO ESP32
+// 6. RECEBER DADOS DO ESP32
 // ==========================================================
 
-function connectESP32() {
-    const ip =
-        espIp.value.trim();
+async function receberDados() {
 
-
-    if (!ip) {
-
-        alert(
-            "Digite o IP do ESP32."
-        );
-
+    // Se não existe uma porta, não podemos receber dados
+    if (!porta || !porta.readable) {
         return;
-
     }
 
 
-    stopDemo();
+    // Cria um leitor para receber os dados
+    leitor = porta.readable.getReader();
 
 
-    if (socket) {
-
-        socket.close();
-
-        socket = null;
-
-    }
-
-
-    demoMode = false;
-
-
-    modeText.textContent =
-        "ESP32";
-
-
-    setConnection(
-        "offline",
-        "Conectando..."
-    );
+    let dadosRecebidos = "";
 
 
     try {
 
-        const protocol =
-            window.location.protocol === "https:" ? "wss" : "ws";
+        while (true) {
+
+            // Espera chegar algum dado do ESP32
+            const resultado = await leitor.read();
 
 
-        socket =
-            new WebSocket(
-                `${protocol}://${ip}:81`
-            );
+            // Se a conexão terminou
+            if (resultado.done) {
+                break;
+            }
 
 
-        socket.onopen =
-            function () {
-
-                setConnection(
-                    "online",
-                    "ESP32 conectado"
-                );
+            // Converte os dados recebidos para texto
+            const texto = new TextDecoder().decode(resultado.value);
 
 
-                console.log(
-                    "ESP32 conectado:",
-                    ip
-                );
-
-            };
+            // Junta o texto recebido
+            dadosRecebidos += texto;
 
 
-        socket.onmessage =
-            function (event) {
-
-                try {
-
-                    const data =
-                        JSON.parse(
-                            event.data
-                        );
+            // Procura por uma quebra de linha
+            // O ESP32 deve enviar cada informação terminando com \n
+            let linhas = dadosRecebidos.split("\n");
 
 
-                    updateSystem({
+            // Guarda a última parte
+            // porque ela pode ainda estar incompleta
+            dadosRecebidos = linhas.pop();
 
-                        flowRate:
-                            Number(
-                                data.flowRate
-                            ) || 0,
 
-                        totalLiters:
-                            Number.isFinite(
-                                Number(data.totalLiters)
-                            )
-                                ? Number(data.totalLiters)
-                                : undefined,
+            // Processa cada linha recebida
+            for (let i = 0; i < linhas.length; i++) {
 
-                        pump:
-                            parsePumpState(data.pump)
+                let linha = linhas[i].trim();
 
-                    });
-
+                if (linha !== "") {
+                    processarDados(linha);
                 }
 
-                catch (error) {
+            }
 
-                    console.error(
-                        "Dados inválidos:",
-                        event.data
-                    );
-
-                }
-
-            };
-
-
-        socket.onerror =
-            function () {
-
-                setConnection(
-                    "offline",
-                    "Erro de conexão"
-                );
-
-            };
-
-
-        socket.onclose =
-            function () {
-
-                setConnection(
-                    "offline",
-                    "ESP32 desconectado"
-                );
-
-            };
+        }
 
     }
 
-    catch (error) {
+    catch (erro) {
 
-        console.error(error);
+        console.log("Erro na leitura:", erro);
 
-        setConnection(
-            "offline",
-            "Falha na conexão"
+        conectado = false;
+
+        if (statusESP32) {
+            statusESP32.textContent = "ESP32 desconectado";
+        }
+
+        mostrarErro(
+            "A conexão com o ESP32 foi perdida."
         );
+
+    }
+
+    finally {
+
+        // Libera o leitor
+        if (leitor) {
+            leitor.releaseLock();
+        }
 
     }
 
@@ -480,141 +242,246 @@ function connectESP32() {
 
 
 // ==========================================================
-// ENVIAR COMANDO PARA ESP32
+// 7. PROCESSAR DADOS RECEBIDOS
 // ==========================================================
 
-function sendCommand(command) {
+function processarDados(linha) {
 
-    if (
-        !socket ||
-        socket.readyState !==
-        WebSocket.OPEN
-    ) {
+    console.log("Recebido do ESP32:", linha);
 
-        alert(
+
+    // Atualiza o momento em que recebemos um dado
+    ultimoDadoRecebido = Date.now();
+
+
+    // ------------------------------------------------------
+    // VAZÃO
+    // Exemplo recebido:
+    // VAZAO:2.50
+    // ------------------------------------------------------
+
+    if (linha.startsWith("VAZAO:")) {
+
+        // Pega somente o valor depois de "VAZAO:"
+        let valor = linha.replace("VAZAO:", "");
+
+
+        // Converte o texto para número
+        let valorVazao = parseFloat(valor);
+
+
+        // Verifica se realmente é um número
+        if (!isNaN(valorVazao)) {
+
+            vazaoAtual = valorVazao;
+
+
+            // Mostra na tela
+            if (vazao) {
+                vazao.textContent =
+                    valorVazao.toFixed(2) + " L/min";
+            }
+
+
+            // Calcula a quantidade de água
+            calcularAguaUsada(valorVazao);
+
+        }
+
+    }
+
+
+    // ------------------------------------------------------
+    // BOMBA
+    // Exemplo:
+    // BOMBA:ON
+    // BOMBA:OFF
+    // ------------------------------------------------------
+
+    if (linha === "BOMBA:ON") {
+
+        if (statusBomba) {
+            statusBomba.textContent = "Bomba ligada";
+        }
+
+    }
+
+
+    if (linha === "BOMBA:OFF") {
+
+        if (statusBomba) {
+            statusBomba.textContent = "Bomba desligada";
+        }
+
+    }
+
+
+    // ------------------------------------------------------
+    // FUTURO SENSOR DE UMIDADE
+    //
+    // Exemplo:
+    // UMIDADE:65
+    //
+    // Adicionar depois:
+    //
+    // if (linha.startsWith("UMIDADE:")) {
+    //
+    //     let valor = linha.replace("UMIDADE:", "");
+    //
+    //     let umidade = parseFloat(valor);
+    //
+    // }
+    // ------------------------------------------------------
+
+}
+
+
+// ==========================================================
+// 8. CALCULAR ÁGUA UTILIZADA
+// ==========================================================
+
+function calcularAguaUsada(vazao) {
+
+    // Se ainda não tem um horário anterior,
+    // não conseguimos calcular o intervalo
+    if (ultimoDadoRecebido === 0) {
+        return;
+    }
+
+
+    // Descobre quantos segundos passaram
+    let agora = Date.now();
+
+    let tempoPassado =
+        (agora - ultimoDadoRecebido) / 1000;
+
+
+    // A vazão está em litros por minuto.
+    //
+    // Para descobrir quantos litros passaram
+    // nesse pequeno intervalo:
+    //
+    // litros = vazão / 60 * segundos
+
+    let litros = (vazao / 60) * tempoPassado;
+
+
+    // Soma à quantidade total
+    aguaTotal = aguaTotal + litros;
+
+
+    // Atualiza a tela
+    if (aguaUsada) {
+
+        aguaUsada.textContent =
+            aguaTotal.toFixed(2) + " L";
+
+    }
+
+
+    // Atualiza o horário
+    ultimoDadoRecebido = agora;
+
+}
+
+
+// ==========================================================
+// 9. LIGAR A BOMBA
+// ==========================================================
+
+if (botaoLigar) {
+
+    botaoLigar.addEventListener("click", function () {
+
+        enviarComando("BOMBA:ON");
+
+    });
+
+}
+
+
+// ==========================================================
+// 10. DESLIGAR A BOMBA
+// ==========================================================
+
+if (botaoDesligar) {
+
+    botaoDesligar.addEventListener("click", function () {
+
+        enviarComando("BOMBA:OFF");
+
+    });
+
+}
+
+
+// ==========================================================
+// 11. ENVIAR COMANDO PARA O ESP32
+// ==========================================================
+
+async function enviarComando(comando) {
+
+    // Verifica se existe uma conexão
+    if (!porta || !porta.writable) {
+
+        mostrarErro(
             "O ESP32 não está conectado."
         );
 
         return;
-
     }
 
 
-    socket.send(command);
+    try {
 
-}
-
-
-// ==========================================================
-// CONTROLE DA BOMBA
-// ==========================================================
-
-function setPumpState(state) {
-
-    const oldState =
-        pumpOn;
+        // Cria um escritor
+        const escritor = porta.writable.getWriter();
 
 
-    pumpOn =
-        Boolean(state);
-
-
-    // Começou a funcionar
-
-    if (
-        pumpOn &&
-        !oldState
-    ) {
-
-        pumpStartedAt =
-            Date.now();
-
-    }
-
-
-    // Parou
-
-    if (
-        !pumpOn &&
-        oldState &&
-        pumpStartedAt
-    ) {
-
-        pumpElapsedBeforeCurrentRun +=
-
-            Math.floor(
-
-                (
-                    Date.now() -
-                    pumpStartedAt
-                ) / 1000
-
-            );
-
-
-        pumpStartedAt =
-            null;
-
-    }
-
-
-    pumpStatus.textContent =
-        pumpOn
-            ? "Bomba ligada"
-            : "Bomba desligada";
-
-
-    pumpBadge.textContent =
-        pumpOn
-            ? "LIGADA"
-            : "DESLIGADA";
-
-
-    pumpBadge.className =
-        "badge " +
-        (
-            pumpOn
-                ? "on"
-                : "off"
+        // Transforma o comando em bytes
+        const dados = new TextEncoder().encode(
+            comando + "\n"
         );
 
 
-    pumpOrb.className =
-        "pump-orb " +
-        (
-            pumpOn
-                ? "on"
-                : "off"
+        // Envia para o ESP32
+        await escritor.write(dados);
+
+
+        // Libera o escritor
+        escritor.releaseLock();
+
+
+        console.log("Enviado para ESP32:", comando);
+
+
+        mostrarErro("");
+
+
+    }
+
+    catch (erro) {
+
+        console.log("Erro ao enviar comando:", erro);
+
+        mostrarErro(
+            "Não foi possível enviar o comando para o ESP32."
         );
 
-
-    pumpTimeLabel.textContent =
-        pumpOn
-            ? "Sistema em funcionamento"
-            : "Bomba desligada";
-
-
-    if (pumpOn) {
-
-        $("btnOn")
-            .style.opacity =
-            "0.55";
-
-        $("btnOff")
-            .style.opacity =
-            "1";
-
     }
 
-    else {
+}
 
-        $("btnOn")
-            .style.opacity =
-            "1";
 
-        $("btnOff")
-            .style.opacity =
-            "0.55";
+// ==========================================================
+// 12. MOSTRAR ERROS
+// ==========================================================
+
+function mostrarErro(mensagem) {
+
+    if (mensagemErro) {
+
+        mensagemErro.textContent = mensagem;
 
     }
 
@@ -622,973 +489,112 @@ function setPumpState(state) {
 
 
 // ==========================================================
-// LIGAR BOMBA
+// 13. DETECTAR DESCONEXÃO DO ESP32
 // ==========================================================
 
-function turnPumpOn() {
+// O navegador avisa quando um dispositivo serial
+// é desconectado.
 
-    if (demoMode) {
+if ("serial" in navigator) {
 
-        setPumpState(true);
-
-        return;
-
-    }
-
-
-    sendCommand("ON");
-
-}
-
-
-// ==========================================================
-// DESLIGAR BOMBA
-// ==========================================================
-
-function turnPumpOff() {
-
-    if (demoMode) {
-
-        setPumpState(false);
-
-        return;
-
-    }
-
-
-    sendCommand("OFF");
-
-}
-
-
-// ==========================================================
-// RECEBER DADOS
-// ==========================================================
-
-function updateSystem(data) {
-
-    flowRate =
-        Number(
-            data.flowRate
-        ) || 0;
-
-
-    if (
-        Number.isFinite(data.totalLiters)
-    ) {
-
-        totalLiters =
-            data.totalLiters;
-
-    }
-
-    else {
-
-        totalLiters +=
-            flowRate / 60;
-
-    }
-
-
-    setPumpState(
-        parsePumpState(data.pump)
-    );
-
-
-    flowRateEl.textContent =
-        formatNumber(
-            flowRate
-        );
-
-
-    totalLitersEl.textContent =
-        formatNumber(
-            totalLiters
-        );
-
-
-    updateFlowBar();
-
-    updateFlowStatus();
-
-    updateChart();
-
-    checkAlerts();
-
-    addHistory();
-
-}
-
-
-// ==========================================================
-// BARRA DE VAZÃO
-// ==========================================================
-
-function updateFlowBar() {
-
-    const max =
-        Number(
-            maxFlowInput.value
-        ) || 12;
-
-
-    const percentage =
-        Math.min(
-
-            100,
-
-            Math.max(
-
-                0,
-
-                (
-                    flowRate /
-                    max
-                ) * 100
-
-            )
-
-        );
-
-
-    flowBar.style.width =
-        percentage + "%";
-
-}
-
-
-// ==========================================================
-// STATUS DA VAZÃO
-// ==========================================================
-
-function updateFlowStatus() {
-
-    const min =
-        Number(
-            minFlowInput.value
-        ) || 0;
-
-
-    const max =
-        Number(
-            maxFlowInput.value
-        ) || Infinity;
-
-
-    if (
-        !pumpOn &&
-        flowRate === 0
-    ) {
-
-        flowStatus.textContent =
-            "Aguardando fluxo";
-
-        return;
-
-    }
-
-
-    if (
-        flowRate < min
-    ) {
-
-        flowStatus.textContent =
-            "Vazão abaixo do esperado";
-
-    }
-
-
-    else if (
-        flowRate > max
-    ) {
-
-        flowStatus.textContent =
-            "Vazão acima do esperado";
-
-    }
-
-
-    else {
-
-        flowStatus.textContent =
-            "Vazão normal";
-
-    }
-
-}
-
-
-// ==========================================================
-// TEMPO DA BOMBA
-// ==========================================================
-
-function updatePumpTimer() {
-
-    let seconds =
-        pumpElapsedBeforeCurrentRun;
-
-
-    if (
-        pumpOn &&
-        pumpStartedAt
-    ) {
-
-        seconds +=
-
-            Math.floor(
-
-                (
-                    Date.now() -
-                    pumpStartedAt
-                ) / 1000
-
-            );
-
-    }
-
-
-    pumpTimeEl.textContent =
-        formatTime(seconds);
-
-}
-
-
-setInterval(
-    updatePumpTimer,
-    1000
-);
-
-
-// ==========================================================
-// GRÁFICO
-// ==========================================================
-
-function updateChart() {
-
-    if (!flowChart) {
-
-        return;
-
-    }
-
-    const time =
-        nowTime();
-
-
-    flowChart.data.labels
-        .push(time);
-
-
-    flowChart.data.datasets[0].data
-        .push(flowRate);
-
-
-    if (
-        flowChart.data.labels.length >
-        MAX_POINTS
-    ) {
-
-        flowChart.data.labels
-            .shift();
-
-
-        flowChart.data.datasets[0].data
-            .shift();
-
-    }
-
-
-    flowChart.update();
-
-}
-
-
-// ==========================================================
-// LIMPAR GRÁFICO
-// ==========================================================
-
-$("btnClearChart")
-    .addEventListener(
-        "click",
+    navigator.serial.addEventListener(
+        "disconnect",
         function () {
 
-            if (!flowChart) {
+            conectado = false;
 
-                return;
+            porta = null;
+
+            if (statusESP32) {
+
+                statusESP32.textContent =
+                    "ESP32 desconectado";
+
+                statusESP32.classList.remove("conectado");
+                statusESP32.classList.add("desconectado");
 
             }
 
-            flowChart.data.labels =
-                [];
+            mostrarErro(
+                "O ESP32 foi desconectado."
+            );
 
-
-            flowChart.data.datasets[0]
-                .data = [];
-
-
-            flowChart.update();
+            console.log("ESP32 desconectado.");
 
         }
     );
 
+}
+
 
 // ==========================================================
-// ALERTAS
+// 14. VERIFICAR PERIODICAMENTE A CONEXÃO
 // ==========================================================
 
-function checkAlerts() {
+// Essa parte verifica se o ESP32 ainda está enviando dados.
+//
+// Se ficar muito tempo sem receber dados,
+// mostramos uma mensagem avisando que pode haver
+// algum problema na comunicação.
 
-    const min =
-        Number(
-            minFlowInput.value
-        ) || 0;
+setInterval(function () {
 
-
-    const max =
-        Number(
-            maxFlowInput.value
-        ) || Infinity;
-
-
-    let type = null;
-
-    let message = "";
-
-
-    if (
-        pumpOn &&
-        flowRate < min
-    ) {
-
-        type =
-            "warning";
-
-
-        message =
-            `Vazão baixa: ${formatNumber(flowRate)} L/min. Verifique o fluxo, a bomba ou possíveis obstruções.`;
-
-    }
-
-
-    if (
-        pumpOn &&
-        flowRate > max
-    ) {
-
-        type =
-            "danger";
-
-
-        message =
-            `Vazão alta: ${formatNumber(flowRate)} L/min. Verifique possíveis vazamentos ou alterações no sistema.`;
-
-    }
-
-
-    if (!type) {
-
+    if (!conectado) {
         return;
-
     }
 
 
-    const last =
-        alerts[0];
+    let agora = Date.now();
 
 
-    if (
-        last &&
-        last.message === message &&
-        Date.now() -
-        last.timestamp <
-        10000
-    ) {
+    // Se ficarmos mais de 10 segundos sem receber dados
+    if (agora - ultimoDadoRecebido > 10000) {
 
-        return;
-
-    }
-
-
-    alerts.unshift({
-
-        type,
-
-        message,
-
-        timestamp:
-            Date.now(),
-
-        time:
-            nowTime()
-
-    });
-
-
-    alerts =
-        alerts.slice(0, 5);
-
-
-    renderAlerts();
-
-}
-
-
-// ==========================================================
-// MOSTRAR ALERTAS
-// ==========================================================
-
-function renderAlerts() {
-
-    alertCount.textContent =
-        alerts.length;
-
-
-    if (!alerts.length) {
-
-        alertList.innerHTML = `
-
-            <div class="empty-alert">
-
-                <span>
-                    ✓
-                </span>
-
-                <div>
-
-                    <strong>
-                        Nenhum alerta
-                    </strong>
-
-                    <small>
-                        O sistema está aguardando dados.
-                    </small>
-
-                </div>
-
-            </div>
-
-        `;
-
-        return;
-
-    }
-
-
-    alertList.innerHTML =
-
-        alerts.map(
-            alert => `
-
-                <div
-                    class="alert-item ${alert.type}"
-                >
-
-                    <span class="alert-symbol">
-
-                        ${alert.type ===
-                    "danger"
-                    ? "!"
-                    : "⚠"
-                }
-
-                    </span>
-
-
-                    <div>
-
-                        <strong>
-
-                            ${alert.type ===
-                    "danger"
-                    ? "Vazão alta"
-                    : "Vazão baixa"
-                }
-
-                        </strong>
-
-
-                        <small>
-                            ${alert.message}
-                        </small>
-
-
-                        <small>
-                            ${alert.time}
-                        </small>
-
-                    </div>
-
-                </div>
-
-            `
-        ).join("");
-
-}
-
-
-// ==========================================================
-// HISTÓRICO
-// ==========================================================
-
-function addHistory() {
-
-    const status =
-        getFlowStatus();
-
-
-    history.unshift({
-
-        time:
-            nowTime(),
-
-        flow:
-            flowRate,
-
-        liters:
-            totalLiters,
-
-        pump:
-            pumpOn,
-
-        status
-
-    });
-
-
-    history =
-        history.slice(
-            0,
-            20
-        );
-
-
-    renderHistory();
-
-}
-
-
-// ==========================================================
-// STATUS PARA HISTÓRICO
-// ==========================================================
-
-function getFlowStatus() {
-
-    const min =
-        Number(
-            minFlowInput.value
-        ) || 0;
-
-
-    const max =
-        Number(
-            maxFlowInput.value
-        ) || Infinity;
-
-
-    if (
-        pumpOn &&
-        flowRate < min
-    ) {
-
-        return "Baixa";
-
-    }
-
-
-    if (
-        pumpOn &&
-        flowRate > max
-    ) {
-
-        return "Alta";
-
-    }
-
-
-    return "Normal";
-
-}
-
-
-// ==========================================================
-// MOSTRAR HISTÓRICO
-// ==========================================================
-
-function renderHistory() {
-
-    if (!history.length) {
-
-        historyBody.innerHTML = `
-
-            <tr class="empty-row">
-
-                <td colspan="5">
-
-                    Nenhuma medição
-                    recebida ainda.
-
-                </td>
-
-            </tr>
-
-        `;
-
-        return;
-
-    }
-
-
-    historyBody.innerHTML =
-
-        history.map(
-            row => {
-
-                let statusClass =
-                    "status-ok";
-
-
-                if (
-                    row.status ===
-                    "Baixa"
-                ) {
-
-                    statusClass =
-                        "status-warning";
-
-                }
-
-
-                if (
-                    row.status ===
-                    "Alta"
-                ) {
-
-                    statusClass =
-                        "status-danger";
-
-                }
-
-
-                return `
-
-                    <tr>
-
-                        <td>
-                            ${row.time}
-                        </td>
-
-
-                        <td>
-                            ${formatNumber(row.flow)}
-                            L/min
-                        </td>
-
-
-                        <td>
-                            ${formatNumber(row.liters)}
-                            L
-                        </td>
-
-
-                        <td>
-                            ${row.pump
-                        ? "Ligada"
-                        : "Desligada"
-                    }
-                        </td>
-
-
-                        <td
-                            class="${statusClass}"
-                        >
-                            ${row.status}
-                        </td>
-
-                    </tr>
-
-                `;
-
-            }
-        ).join("");
-
-}
-
-
-// ==========================================================
-// MODO DEMONSTRAÇÃO
-// ==========================================================
-
-function startDemo() {
-
-    stopDemo();
-
-
-    if (socket) {
-
-        socket.close();
-
-        socket = null;
-
-    }
-
-
-    demoMode =
-        true;
-
-
-    modeText.textContent =
-        "Demonstração";
-
-
-    setConnection(
-        "demo",
-        "Modo demonstração"
-    );
-
-
-    setPumpState(
-        false
-    );
-
-
-    flowRate =
-        0;
-
-
-    totalLiters =
-        0;
-
-
-    flowRateEl.textContent =
-        "0,00";
-
-
-    totalLitersEl.textContent =
-        "0,00";
-
-
-    demoTimer =
-
-        setInterval(
-
-            function () {
-
-                if (pumpOn) {
-
-                    const base =
-                        7.5;
-
-
-                    const variation =
-                        (
-                            Math.random()
-                            - 0.5
-                        ) * 2;
-
-
-                    flowRate =
-                        Math.max(
-
-                            0,
-
-                            base +
-                            variation
-
-                        );
-
-
-                    totalLiters +=
-                        flowRate / 60;
-
-                }
-
-                else {
-
-                    flowRate =
-                        0;
-
-                }
-
-
-                updateSystem({
-
-                    flowRate,
-
-                    totalLiters,
-
-                    pump:
-                        pumpOn
-
-                });
-
-            },
-
-            1000
-
-        );
-
-}
-
-
-// ==========================================================
-// PARAR DEMONSTRAÇÃO
-// ==========================================================
-
-function stopDemo() {
-
-    if (demoTimer) {
-
-        clearInterval(
-            demoTimer
-        );
-
-        demoTimer =
-            null;
-
-    }
-
-}
-
-
-// ==========================================================
-// RESETAR
-// ==========================================================
-
-function resetSession() {
-
-    totalLiters =
-        0;
-
-
-    pumpElapsedBeforeCurrentRun =
-        0;
-
-
-    pumpStartedAt =
-        pumpOn
-            ? Date.now()
-            : null;
-
-
-    history =
-        [];
-
-
-    alerts =
-        [];
-
-
-    totalLitersEl.textContent =
-        "0,00";
-
-
-    renderHistory();
-
-    renderAlerts();
-
-
-    if (flowChart) {
-
-        flowChart.data.labels =
-            [];
-
-
-        flowChart.data.datasets[0]
-            .data = [];
-
-
-        flowChart.update();
-
-    }
-
-
-    if (
-        !demoMode &&
-        socket &&
-        socket.readyState ===
-        WebSocket.OPEN
-    ) {
-
-        socket.send(
-            "RESET"
+        mostrarErro(
+            "Nenhum dado recebido do ESP32 há mais de 10 segundos."
         );
 
     }
 
+}, 5000);
+
+
+// ==========================================================
+// 15. ESTADO INICIAL
+// ==========================================================
+
+if (statusESP32) {
+
+    statusESP32.textContent =
+        "ESP32 desconectado";
+
+}
+
+
+if (statusBomba) {
+
+    statusBomba.textContent =
+        "Bomba desligada";
+
+}
+
+
+if (vazao) {
+
+    vazao.textContent =
+        "0.00 L/min";
+
+}
+
+
+if (aguaUsada) {
+
+    aguaUsada.textContent =
+        "0.00 L";
+
 }
 
 
 // ==========================================================
-// EVENTOS
+// FIM DO SCRIPT
 // ==========================================================
-
-$("btnOn")
-    .addEventListener(
-        "click",
-        turnPumpOn
-    );
-
-
-$("btnOff")
-    .addEventListener(
-        "click",
-        turnPumpOff
-    );
-
-
-$("btnConnect")
-    .addEventListener(
-        "click",
-        connectESP32
-    );
-
-
-$("btnDemo")
-    .addEventListener(
-        "click",
-        startDemo
-    );
-
-
-$("btnReset")
-    .addEventListener(
-        "click",
-        resetSession
-    );
-
-
-minFlowInput
-    .addEventListener(
-        "input",
-        function () {
-
-            minLimitText.textContent =
-                `${formatNumber(minFlowInput.value)} L/min`;
-
-        }
-    );
-
-
-maxFlowInput
-    .addEventListener(
-        "input",
-        function () {
-
-            maxLimitText.textContent =
-                `${formatNumber(maxFlowInput.value)} L/min`;
-
-        }
-    );
-
-
-// ==========================================================
-// INICIALIZAÇÃO
-// ==========================================================
-
-renderAlerts();
-
-renderHistory();
-
-setPumpState(false);
-
-startDemo();
