@@ -36,16 +36,6 @@ create table if not exists public.leituras (
 );
 
 alter table public.leituras enable row level security;
-
-create policy "leituras_publicas_select"
-	on public.leituras for select
-	to anon, authenticated
-	using (true);
-
-create policy "leituras_publicas_insert"
-	on public.leituras for insert
-	to anon, authenticated
-	with check (vazao >= 0 and agua_usada >= 0);
 ```
 
 Se as políticas já existirem, não execute os respectivos `create policy`
