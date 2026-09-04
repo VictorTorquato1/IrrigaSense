@@ -1,600 +1,268 @@
+/* IrrigaSense: Web Serial, dashboard local e persistencia opcional no Supabase. */
 
-/*
-==========================================================
-IRRIGASENSE
-JavaScript para comunicação com ESP32 pelo USB/Wi-Fi
-Usando a Web Serial API
-==========================================================
-*/
+const configuracaoSupabase = window.IRRIGASENSE_CONFIG || {};
+const supabaseApi = window.supabase;
+const supabaseClient = supabaseApi && configuracaoSupabase.url && configuracaoSupabase.anonKey
+    ? supabaseApi.createClient(configuracaoSupabase.url, configuracaoSupabase.anonKey)
+    : null;
 
-// ==========================================================
-// 1. VARIÁVEIS
-// ==========================================================
-
-// Guarda a conexão com o ESP32
 let porta = null;
-
-// Guarda o leitor dos dados que vem do ESP32
 let leitor = null;
-
-// Indica se o ESP32 está conectado
 let conectado = false;
-
-// Guarda a quantidade total de água utilizada
 let aguaTotal = 0;
-
-// Guarda a última vazão recebida
 let vazaoAtual = 0;
-
-// Usado para saber quando o último dado foi recebido
+let bombaLigada = false;
 let ultimoDadoRecebido = 0;
+let ultimaLeituraSalva = 0;
+let grafico = null;
+let ultimoAlerta = "";
 
-
-// ==========================================================
-// 2. HTML
-// ==========================================================
-
-// Botões
 const botaoConectar = document.getElementById("conectarESP32");
 const botaoLigar = document.getElementById("ligarBomba");
 const botaoDesligar = document.getElementById("desligarBomba");
-
-// Textos
 const statusESP32 = document.getElementById("statusESP32");
 const statusBomba = document.getElementById("statusBomba");
 const vazao = document.getElementById("vazao");
 const aguaUsada = document.getElementById("aguaUsada");
 const mensagemErro = document.getElementById("mensagemErro");
-
-
-// ==========================================================
-// 3. VERIFICAR SE O NAVEGADOR POSSUI WEB SERIAL
-// ==========================================================
-
-if (!("serial" in navigator)) {
-
-    if (mensagemErro) {
-        mensagemErro.textContent =
-            "Seu navegador não suporta comunicação USB/Serial com o ESP32.";
-    }
-
-    console.log("Web Serial API não disponível.");
-
-}
-
-
-// ==========================================================
-// 4. BOTÃO DE CONECTAR
-// ==========================================================
-
-if (botaoConectar) {
-
-    botaoConectar.addEventListener("click", conectarESP32);
-
-}
-
-
-// ==========================================================
-// 5. CONECTAR AO ESP32
-// ==========================================================
-
-async function conectarESP32() {
-
-    try {
-
-        // Verifica se o navegador possui Web Serial
-        if (!("serial" in navigator)) {
-
-            mostrarErro(
-                "Seu navegador não suporta Web Serial."
-            );
-
-            return;
-        }
-
-
-        // Abre a janela para o usuário escolher o ESP32
-        porta = await navigator.serial.requestPort();
-
-
-        // Abre a porta serial
-        // 115200 deve ser o mesmo valor usado no ESP32
-        await porta.open({
-            baudRate: 115200
-        });
-
-
-        // Atualiza o estado
-        conectado = true;
-
-        statusESP32.textContent = "ESP32 conectado";
-
-        statusESP32.classList.remove("desconectado");
-        statusESP32.classList.add("conectado");
-
-
-        mostrarErro("");
-
-
-        // Guarda o momento da conexão
-        ultimoDadoRecebido = Date.now();
-
-
-        // Começa a receber dados
-        receberDados();
-
-
-        console.log("ESP32 conectado.");
-
-    }
-
-    catch (erro) {
-
-        console.log("Erro ao conectar:", erro);
-
-        conectado = false;
-
-        if (statusESP32) {
-            statusESP32.textContent = "ESP32 desconectado";
-        }
-
-        mostrarErro(
-            "Não foi possível conectar ao ESP32."
-        );
-
-    }
-
-}
-
-
-// ==========================================================
-// 6. RECEBER DADOS DO ESP32
-// ==========================================================
-
-async function receberDados() {
-
-    // Se não existe uma porta, não podemos receber dados
-    if (!porta || !porta.readable) {
-        return;
-    }
-
-
-    // Cria um leitor para receber os dados
-    leitor = porta.readable.getReader();
-
-
-    let dadosRecebidos = "";
-
-
-    try {
-
-        while (true) {
-
-            // Espera chegar algum dado do ESP32
-            const resultado = await leitor.read();
-
-
-            // Se a conexão terminou
-            if (resultado.done) {
-                break;
-            }
-
-
-            // Converte os dados recebidos para texto
-            const texto = new TextDecoder().decode(resultado.value);
-
-
-            // Junta o texto recebido
-            dadosRecebidos += texto;
-
-
-            // Procura por uma quebra de linha
-            // O ESP32 deve enviar cada informação terminando com \n
-            let linhas = dadosRecebidos.split("\n");
-
-
-            // Guarda a última parte
-            // porque ela pode ainda estar incompleta
-            dadosRecebidos = linhas.pop();
-
-
-            // Processa cada linha recebida
-            for (let i = 0; i < linhas.length; i++) {
-
-                let linha = linhas[i].trim();
-
-                if (linha !== "") {
-                    processarDados(linha);
-                }
-
-            }
-
-        }
-
-    }
-
-    catch (erro) {
-
-        console.log("Erro na leitura:", erro);
-
-        conectado = false;
-
-        if (statusESP32) {
-            statusESP32.textContent = "ESP32 desconectado";
-        }
-
-        mostrarErro(
-            "A conexão com o ESP32 foi perdida."
-        );
-
-    }
-
-    finally {
-
-        // Libera o leitor
-        if (leitor) {
-            leitor.releaseLock();
-        }
-
-    }
-
-}
-
-
-// ==========================================================
-// 7. PROCESSAR DADOS RECEBIDOS
-// ==========================================================
-
-function processarDados(linha) {
-
-    console.log("Recebido do ESP32:", linha);
-
-
-    // Atualiza o momento em que recebemos um dado
-    ultimoDadoRecebido = Date.now();
-
-
-    // ------------------------------------------------------
-    // VAZÃO
-    // Exemplo recebido:
-    // VAZAO:2.50
-    // ------------------------------------------------------
-
-    if (linha.startsWith("VAZAO:")) {
-
-        // Pega somente o valor depois de "VAZAO:"
-        let valor = linha.replace("VAZAO:", "");
-
-
-        // Converte o texto para número
-        let valorVazao = parseFloat(valor);
-
-
-        // Verifica se realmente é um número
-        if (!isNaN(valorVazao)) {
-
-            vazaoAtual = valorVazao;
-
-
-            // Mostra na tela
-            if (vazao) {
-                vazao.textContent =
-                    valorVazao.toFixed(2) + " L/min";
-            }
-
-
-            // Calcula a quantidade de água
-            calcularAguaUsada(valorVazao);
-
-        }
-
-    }
-
-
-    // ------------------------------------------------------
-    // BOMBA
-    // Exemplo:
-    // BOMBA:ON
-    // BOMBA:OFF
-    // ------------------------------------------------------
-
-    if (linha === "BOMBA:ON") {
-
-        if (statusBomba) {
-            statusBomba.textContent = "Bomba ligada";
-        }
-
-    }
-
-
-    if (linha === "BOMBA:OFF") {
-
-        if (statusBomba) {
-            statusBomba.textContent = "Bomba desligada";
-        }
-
-    }
-
-
-    // ------------------------------------------------------
-    // FUTURO SENSOR DE UMIDADE
-    //
-    // Exemplo:
-    // UMIDADE:65
-    //
-    // Adicionar depois:
-    //
-    // if (linha.startsWith("UMIDADE:")) {
-    //
-    //     let valor = linha.replace("UMIDADE:", "");
-    //
-    //     let umidade = parseFloat(valor);
-    //
-    // }
-    // ------------------------------------------------------
-
-}
-
-
-// ==========================================================
-// 8. CALCULAR ÁGUA UTILIZADA
-// ==========================================================
-
-function calcularAguaUsada(vazao) {
-
-    // Se ainda não tem um horário anterior,
-    // não conseguimos calcular o intervalo
-    if (ultimoDadoRecebido === 0) {
-        return;
-    }
-
-
-    // Descobre quantos segundos passaram
-    let agora = Date.now();
-
-    let tempoPassado =
-        (agora - ultimoDadoRecebido) / 1000;
-
-
-    // A vazão está em litros por minuto.
-    //
-    // Para descobrir quantos litros passaram
-    // nesse pequeno intervalo:
-    //
-    // litros = vazão / 60 * segundos
-
-    let litros = (vazao / 60) * tempoPassado;
-
-
-    // Soma à quantidade total
-    aguaTotal = aguaTotal + litros;
-
-
-    // Atualiza a tela
-    if (aguaUsada) {
-
-        aguaUsada.textContent =
-            aguaTotal.toFixed(2) + " L";
-
-    }
-
-
-    // Atualiza o horário
-    ultimoDadoRecebido = agora;
-
-}
-
-
-// ==========================================================
-// 9. LIGAR A BOMBA
-// ==========================================================
-
-if (botaoLigar) {
-
-    botaoLigar.addEventListener("click", function () {
-
-        enviarComando("BOMBA:ON");
-
-    });
-
-}
-
-
-// ==========================================================
-// 10. DESLIGAR A BOMBA
-// ==========================================================
-
-if (botaoDesligar) {
-
-    botaoDesligar.addEventListener("click", function () {
-
-        enviarComando("BOMBA:OFF");
-
-    });
-
-}
-
-
-// ==========================================================
-// 11. ENVIAR COMANDO PARA O ESP32
-// ==========================================================
-
-async function enviarComando(comando) {
-
-    // Verifica se existe uma conexão
-    if (!porta || !porta.writable) {
-
-        mostrarErro(
-            "O ESP32 não está conectado."
-        );
-
-        return;
-    }
-
-
-    try {
-
-        // Cria um escritor
-        const escritor = porta.writable.getWriter();
-
-
-        // Transforma o comando em bytes
-        const dados = new TextEncoder().encode(
-            comando + "\n"
-        );
-
-
-        // Envia para o ESP32
-        await escritor.write(dados);
-
-
-        // Libera o escritor
-        escritor.releaseLock();
-
-
-        console.log("Enviado para ESP32:", comando);
-
-
-        mostrarErro("");
-
-
-    }
-
-    catch (erro) {
-
-        console.log("Erro ao enviar comando:", erro);
-
-        mostrarErro(
-            "Não foi possível enviar o comando para o ESP32."
-        );
-
-    }
-
-}
-
-
-// ==========================================================
-// 12. MOSTRAR ERROS
-// ==========================================================
+const estadoVazao = document.getElementById("estadoVazao");
+const alertaAtual = document.getElementById("alertaAtual");
+const alertasRecentes = document.getElementById("alertasRecentes");
+const vazaoMinima = document.getElementById("vazaoMinima");
+const vazaoMaxima = document.getElementById("vazaoMaxima");
+const botaoSalvarLimites = document.getElementById("salvarLimites");
 
 function mostrarErro(mensagem) {
+    if (mensagemErro) mensagemErro.textContent = mensagem;
+}
 
-    if (mensagemErro) {
+function atualizarEstadoBomba(estado) {
+    bombaLigada = estado;
+    if (statusBomba) statusBomba.textContent = estado ? "Bomba ligada" : "Bomba desligada";
+}
 
-        mensagemErro.textContent = mensagem;
+function obterLimites() {
+    return {
+        minimo: vazaoMinima && vazaoMinima.value !== "" ? Number(vazaoMinima.value) : null,
+        maximo: vazaoMaxima && vazaoMaxima.value !== "" ? Number(vazaoMaxima.value) : null
+    };
+}
 
+function adicionarAlerta(mensagem) {
+    if (!alertaAtual || mensagem === ultimoAlerta) return;
+    ultimoAlerta = mensagem;
+    alertaAtual.textContent = mensagem;
+    if (alertasRecentes) {
+        const item = document.createElement("div");
+        item.className = "alert";
+        item.textContent = `${new Date().toLocaleTimeString("pt-BR")} - ${mensagem}`;
+        alertasRecentes.prepend(item);
+        while (alertasRecentes.children.length > 10) alertasRecentes.lastElementChild.remove();
     }
-
 }
 
-
-// ==========================================================
-// 13. DETECTAR DESCONEXÃO DO ESP32
-// ==========================================================
-
-// O navegador avisa quando um dispositivo serial
-// é desconectado.
-
-if ("serial" in navigator) {
-
-    navigator.serial.addEventListener(
-        "disconnect",
-        function () {
-
-            conectado = false;
-
-            porta = null;
-
-            if (statusESP32) {
-
-                statusESP32.textContent =
-                    "ESP32 desconectado";
-
-                statusESP32.classList.remove("conectado");
-                statusESP32.classList.add("desconectado");
-
-            }
-
-            mostrarErro(
-                "O ESP32 foi desconectado."
-            );
-
-            console.log("ESP32 desconectado.");
-
-        }
-    );
-
+function verificarAlerta(valor) {
+    const limites = obterLimites();
+    if (limites.minimo !== null && valor < limites.minimo) {
+        if (estadoVazao) estadoVazao.textContent = "Estado: abaixo do mínimo";
+        adicionarAlerta(`Vazão abaixo do mínimo (${valor.toFixed(2)} L/min).`);
+    } else if (limites.maximo !== null && valor > limites.maximo) {
+        if (estadoVazao) estadoVazao.textContent = "Estado: acima do máximo";
+        adicionarAlerta(`Vazão acima do máximo (${valor.toFixed(2)} L/min).`);
+    } else {
+        if (estadoVazao) estadoVazao.textContent = "Estado: normal";
+        if (alertaAtual) alertaAtual.textContent = "Nenhum alerta";
+        ultimoAlerta = "";
+    }
 }
 
+function atualizarGrafico(leitura) {
+    if (!grafico) return;
+    const data = grafico.data;
+    data.labels.push(leitura.created_at);
+    data.datasets[0].data.push(Number(leitura.vazao));
+    if (data.labels.length > 200) {
+        data.labels.shift();
+        data.datasets[0].data.shift();
+    }
+    grafico.update("none");
+}
 
-// ==========================================================
-// 14. VERIFICAR PERIODICAMENTE A CONEXÃO
-// ==========================================================
+function inicializarGrafico() {
+    const canvas = document.getElementById("graficoVazao");
+    if (!canvas || !window.Chart) return;
+    grafico = new Chart(canvas, {
+        type: "line",
+        data: { labels: [], datasets: [{ label: "Vazão (L/min)", data: [], borderColor: "#1f6feb", backgroundColor: "rgba(31,111,235,0.12)", tension: 0.25, fill: true }] },
+        options: { responsive: true, maintainAspectRatio: true, scales: { x: { type: "category" }, y: { beginAtZero: true } } }
+    });
+}
 
-// Essa parte verifica se o ESP32 ainda está enviando dados.
-//
-// Se ficar muito tempo sem receber dados,
-// mostramos uma mensagem avisando que pode haver
-// algum problema na comunicação.
-
-setInterval(function () {
-
-    if (!conectado) {
+async function buscarHistorico() {
+    if (!supabaseClient) {
+        console.info("Supabase não configurado; histórico remoto desativado.");
         return;
     }
-
-
-    let agora = Date.now();
-
-
-    // Se ficarmos mais de 10 segundos sem receber dados
-    if (agora - ultimoDadoRecebido > 10000) {
-
-        mostrarErro(
-            "Nenhum dado recebido do ESP32 há mais de 10 segundos."
-        );
-
+    const { data, error } = await supabaseClient.from("leituras").select("created_at,vazao").order("created_at", { ascending: false }).limit(200);
+    if (error) {
+        console.error("Erro ao consultar histórico no Supabase:", error.message);
+        return;
     }
+    const historico = (data || []).reverse();
+    if (grafico) {
+        grafico.data.labels = historico.map((leitura) => leitura.created_at);
+        grafico.data.datasets[0].data = historico.map((leitura) => Number(leitura.vazao));
+        grafico.update("none");
+    }
+}
 
+async function salvarLeitura() {
+    if (!supabaseClient || Date.now() - ultimaLeituraSalva < 5000) return;
+    ultimaLeituraSalva = Date.now();
+    const leitura = { vazao: Number(vazaoAtual.toFixed(2)), agua_usada: Number(aguaTotal.toFixed(2)), bomba_ligada: bombaLigada };
+    const { data, error } = await supabaseClient.from("leituras").insert(leitura).select("created_at,vazao").single();
+    if (error) {
+        console.error("Erro ao salvar leitura no Supabase:", error.message);
+        return;
+    }
+    if (data) atualizarGrafico(data);
+}
+
+function calcularAguaUsada(valor, momento) {
+    if (ultimoDadoRecebido !== 0) {
+        aguaTotal += (valor / 60) * ((momento - ultimoDadoRecebido) / 1000);
+        if (aguaUsada) aguaUsada.textContent = `${aguaTotal.toFixed(2)} L`;
+    }
+}
+
+function processarDados(linha) {
+    console.log("Recebido do ESP32:", linha);
+    const momento = Date.now();
+    if (linha.startsWith("VAZAO:")) {
+        const valorVazao = Number.parseFloat(linha.slice(6));
+        if (!Number.isNaN(valorVazao)) {
+            vazaoAtual = valorVazao;
+            if (vazao) vazao.textContent = `${valorVazao.toFixed(2)} L/min`;
+            calcularAguaUsada(valorVazao, momento);
+            verificarAlerta(valorVazao);
+            void salvarLeitura();
+        }
+    } else if (linha === "BOMBA:ON") {
+        atualizarEstadoBomba(true);
+    } else if (linha === "BOMBA:OFF") {
+        atualizarEstadoBomba(false);
+    }
+    ultimoDadoRecebido = momento;
+}
+
+async function receberDados() {
+    if (!porta || !porta.readable) return;
+    leitor = porta.readable.getReader();
+    let dadosRecebidos = "";
+    try {
+        while (true) {
+            const resultado = await leitor.read();
+            if (resultado.done) break;
+            dadosRecebidos += new TextDecoder().decode(resultado.value);
+            const linhas = dadosRecebidos.split("\n");
+            dadosRecebidos = linhas.pop();
+            linhas.map((linha) => linha.trim()).filter(Boolean).forEach(processarDados);
+        }
+    } catch (erro) {
+        console.error("Erro na leitura serial:", erro);
+        conectado = false;
+        atualizarStatusSerial(false);
+        mostrarErro("A conexão com o ESP32 foi perdida.");
+    } finally {
+        if (leitor) leitor.releaseLock();
+        leitor = null;
+    }
+}
+
+function atualizarStatusSerial(estado) {
+    if (!statusESP32) return;
+    statusESP32.textContent = estado ? "ESP32 conectado" : "ESP32 desconectado";
+    statusESP32.classList.toggle("conectado", estado);
+    statusESP32.classList.toggle("desconectado", !estado);
+}
+
+async function conectarESP32() {
+    if (!("serial" in navigator)) {
+        mostrarErro("Seu navegador não suporta Web Serial.");
+        return;
+    }
+    try {
+        porta = await navigator.serial.requestPort();
+        await porta.open({ baudRate: 115200 });
+        conectado = true;
+        atualizarStatusSerial(true);
+        mostrarErro("");
+        ultimoDadoRecebido = Date.now();
+        void receberDados();
+        console.log("ESP32 conectado.");
+    } catch (erro) {
+        console.error("Erro ao conectar ao ESP32:", erro);
+        conectado = false;
+        atualizarStatusSerial(false);
+        mostrarErro("Não foi possível conectar ao ESP32.");
+    }
+}
+
+async function enviarComando(comando) {
+    if (!porta || !porta.writable) {
+        mostrarErro("O ESP32 não está conectado.");
+        return;
+    }
+    let escritor;
+    try {
+        escritor = porta.writable.getWriter();
+        await escritor.write(new TextEncoder().encode(`${comando}\n`));
+        atualizarEstadoBomba(comando === "BOMBA:ON");
+        mostrarErro("");
+        console.log("Enviado para ESP32:", comando);
+    } catch (erro) {
+        console.error("Erro ao enviar comando:", erro);
+        mostrarErro("Não foi possível enviar o comando para o ESP32.");
+    } finally {
+        if (escritor) escritor.releaseLock();
+    }
+}
+
+function carregarLimites() {
+    try {
+        const limites = JSON.parse(localStorage.getItem("irrigasense-limites") || "{}");
+        if (vazaoMinima && limites.minimo !== undefined) vazaoMinima.value = limites.minimo;
+        if (vazaoMaxima && limites.maximo !== undefined) vazaoMaxima.value = limites.maximo;
+    } catch (erro) {
+        console.warn("Não foi possível carregar os limites locais:", erro);
+    }
+}
+
+botaoConectar?.addEventListener("click", conectarESP32);
+botaoLigar?.addEventListener("click", () => void enviarComando("BOMBA:ON"));
+botaoDesligar?.addEventListener("click", () => void enviarComando("BOMBA:OFF"));
+botaoSalvarLimites?.addEventListener("click", () => {
+    const limites = obterLimites();
+    localStorage.setItem("irrigasense-limites", JSON.stringify(limites));
+    verificarAlerta(vazaoAtual);
+});
+
+if (!("serial" in navigator)) mostrarErro("Seu navegador não suporta comunicação USB/Serial com o ESP32.");
+if ("serial" in navigator) {
+    navigator.serial.addEventListener("disconnect", () => {
+        conectado = false;
+        porta = null;
+        atualizarStatusSerial(false);
+        mostrarErro("O ESP32 foi desconectado.");
+        console.log("ESP32 desconectado.");
+    });
+}
+
+setInterval(() => {
+    if (conectado && Date.now() - ultimoDadoRecebido > 10000) mostrarErro("Nenhum dado recebido do ESP32 há mais de 10 segundos.");
 }, 5000);
 
-
-// ==========================================================
-// 15. ESTADO INICIAL
-// ==========================================================
-
-if (statusESP32) {
-
-    statusESP32.textContent =
-        "ESP32 desconectado";
-
-}
-
-
-if (statusBomba) {
-
-    statusBomba.textContent =
-        "Bomba desligada";
-
-}
-
-
-if (vazao) {
-
-    vazao.textContent =
-        "0.00 L/min";
-
-}
-
-
-if (aguaUsada) {
-
-    aguaUsada.textContent =
-        "0.00 L";
-
-}
-
-
-// ==========================================================
-// FIM DO SCRIPT
-// ==========================================================
+inicializarGrafico();
+carregarLimites();
+atualizarEstadoBomba(false);
+void buscarHistorico();

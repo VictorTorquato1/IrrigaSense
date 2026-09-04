@@ -1,11 +1,13 @@
 <!doctype html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>IrrigaSense - Dashboard</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
     <header class="topbar">
@@ -99,6 +101,15 @@
         <small>IrrigaSense — Monitoramento de irrigação</small>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script>
+        window.IRRIGASENSE_CONFIG = {
+            url: "https://uttgbuwdciegxvzytepk.supabase.co",
+            anonKey: "sb_publishable_8a4KAGBZTpEnBk1yU5eaqw_1CuwyBcB"
+        };
+    </script>
     <script src="JS/script.js"></script>
 </body>
+
 </html>
