@@ -1,6 +1,6 @@
 :root{
     --bg:#f3f6fb;
-    --card:#ffffff;
+    --card:#003067;border-radius: 3px;border-color:#fff;
     --primary:#1f6feb;
     --accent:#2bb673;
     --danger:#e04848;
@@ -13,6 +13,7 @@ body{
     margin:0;
     font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
     background:var(--bg);
+    background-color:#000C1F;
     color:#0f172a;
     -webkit-font-smoothing:antialiased;
 }
@@ -28,10 +29,10 @@ body{
 .brand{font-weight:700;font-size:1.1rem}
 .main-nav a{color:rgba(255,255,255,0.9);text-decoration:none;margin-left:16px}
 
-.container{max-width:1100px;margin:20px auto;padding:0 16px}
+.container{max-width:1100px;margin:20px auto;padding:0 16px;border-radius: 3px;border-color: #fff;}
 
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.06)}
+.card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.06);border-style: outset;border-color:#fff;}
 
 .row{display:flex;align-items:center;gap:12px}
 .status-pill{padding:8px 12px;border-radius:999px;font-weight:600}
