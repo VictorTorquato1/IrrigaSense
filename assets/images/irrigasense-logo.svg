@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" role="img" aria-label="IrrigaSense logo">
+  <defs>
+    <linearGradient id="dropFill" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#2ec7ff"/>
+      <stop offset="45%" stop-color="#0d9be9"/>
+      <stop offset="100%" stop-color="#0a6ec7"/>
+    </linearGradient>
+    <linearGradient id="wordFill" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#0a95e4"/>
+      <stop offset="100%" stop-color="#0b5eb4"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#0c2a4d" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#softShadow)">
+    <path d="M260 48 C335 48 390 90 390 160 C390 252 342 330 260 372 C178 330 130 252 130 160 C130 90 185 48 260 48 Z" fill="url(#dropFill)"/>
+    <path d="M260 100 C312 100 348 130 348 178 C348 235 316 284 260 330 C204 284 172 235 172 178 C172 130 208 100 260 100 Z" fill="#dff7ff" fill-opacity="0.35"/>
+
+    <g fill="#173d78" opacity="0.9">
+      <path d="M260 160 L260 290" stroke="#173d78" stroke-width="18" stroke-linecap="round"/>
+      <path d="M260 180 C202 184 189 224 177 246 C210 244 224 221 260 180 Z"/>
+      <path d="M260 180 C318 184 331 224 343 246 C310 244 296 221 260 180 Z"/>
+      <path d="M260 200 C228 205 214 236 205 258 C232 256 242 236 260 200 Z"/>
+      <path d="M260 200 C292 205 306 236 315 258 C288 256 278 236 260 200 Z"/>
+      <path d="M260 170 C228 152 214 120 206 96 C233 104 246 136 260 170 Z"/>
+      <path d="M260 170 C292 152 306 120 314 96 C287 104 274 136 260 170 Z"/>
+    </g>
+
+    <circle cx="260" cy="118" r="22" fill="#f2fbff"/>
+  </g>
+
+  <g>
+    <text x="470" y="242" font-family="Segoe UI, Arial, sans-serif" font-size="150" font-weight="700" fill="url(#wordFill)" letter-spacing="-5">IrrigaSense</text>
+  </g>
+</svg>

@@ -4,111 +4,181 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>IrrigaSense - Dashboard</title>
+    <title>IrrigaSense</title>
+    <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
+    <link rel="apple-touch-icon" href="assets/icons/favicon.svg" />
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="brand" aria-label="IrrigaSense logo">
+                <img
+                    src="assets/images/irrigasense-logo.svg"
+                    alt="Logo do IrrigaSense"
+                    class="logo-irrigasense"
+                >
+            </div>
 
-    <header class="topbar">
-        <div class="brand">IrrigaSense</div>
-        <nav class="main-nav">
-            <a href="#dashboard">Dashboard</a>
-            <a href="#controles">Controles</a>
-            <a href="#alertas">Alertas</a>
-        </nav>
-    </header>
+            <nav class="main-nav" aria-label="Navegação principal">
+                <a href="#" class="nav-link active" data-screen="inicio">
+                    <span aria-hidden="true">⌂</span>
+                    Início
+                </a>
+                <a href="#" class="nav-link" data-screen="alertas">
+                    <span aria-hidden="true">⚠</span>
+                    Alertas
+                </a>
+                <a href="#" class="nav-link" data-screen="configuracoes">
+                    <span aria-hidden="true">⚙</span>
+                    Configurações
+                </a>
+            </nav>
+        </header>
 
-    <main class="container">
+        <main class="main-content">
+            <section class="screen active" id="inicio-screen">
+                <div class="device-panel">
+                    <div class="panel-header">
+                        <div class="device-icon" aria-hidden="true">◔</div>
+                        <div class="device-title-wrap">
+                            <h2>Dispositivo</h2>
+                            <p class="device-status-line">
+                                <span class="mini-indicator" id="miniIndicadorConexao"></span>
+                                <span id="statusESP32">ESP32 desconectado</span>
+                            </p>
+                        </div>
+                    </div>
 
-        <!-- Área de conexão -->
-        <section class="card" id="conexao">
-            <h2>Conexão</h2>
-            <div class="row">
-                <button id="conectarESP32" class="btn primary">Conectar ESP32</button>
-                <div class="status">
-                    <span id="statusESP32" class="status-pill desconectado">ESP32 desconectado</span>
+                    <div class="device-details-row">
+                        <div class="info-pill">
+                            <span class="info-label">Estado da bomba</span>
+                            <strong id="statusBomba">Desligada</strong>
+                        </div>
+                    </div>
+
+                    <div class="action-row">
+                        <button id="conectarESP32" class="btn btn-primary">Conectar ESP32</button>
+                        <button id="desconectarESP32" class="btn btn-secondary" type="button">Desconectar</button>
+                    </div>
+
+                    <div class="action-row secondary-row">
+                        <button id="ligarBomba" class="btn btn-primary" type="button">Ligar bomba</button>
+                        <button id="desligarBomba" class="btn btn-danger" type="button">Desligar bomba</button>
+                    </div>
+
+                    <div id="mensagemErro" class="message-box error" aria-live="polite"></div>
                 </div>
-            </div>
-            <div class="error" id="mensagemErro"></div>
-        </section>
 
-        <!-- Controles principais -->
-        <section class="grid" id="controles">
+                <div class="metrics-grid">
+                    <article class="metric-card">
+                        <span class="metric-label">Vazão atual</span>
+                        <strong class="metric-value" id="vazaoAtualValor">0.0 L/min</strong>
+                        <span class="metric-situation" id="situacaoVazaoAtual">Sem leitura</span>
+                    </article>
 
-            <div class="card">
-                <h3>Bomba</h3>
-                <p id="statusBomba">Bomba desligada</p>
-                <div class="row">
-                    <button id="ligarBomba" class="btn success">Ligar</button>
-                    <button id="desligarBomba" class="btn danger">Desligar</button>
+                    <article class="metric-card">
+                        <span class="metric-label">Vazão média</span>
+                        <strong class="metric-value" id="vazaoMediaValor">0.0 L/min</strong>
+                        <span class="metric-situation" id="situacaoVazaoMedia">Sem leitura</span>
+                    </article>
+
+                    <article class="metric-card">
+                        <span class="metric-label">Volume utilizado</span>
+                        <strong class="metric-value" id="volumeSessaoValor">0.0 L</strong>
+                        <span class="metric-situation" id="situacaoVolumeSessao">Sem leitura</span>
+                    </article>
                 </div>
-            </div>
 
-            <div class="card">
-                <h3>Vazão</h3>
-                <p class="lead" id="vazao">0.00 L/min</p>
-                <p>Água usada: <span id="aguaUsada">0.00 L</span></p>
-                <p id="estadoVazao" class="muted">Estado: —</p>
-            </div>
-
-            <div class="card">
-                <h3>Sessão</h3>
-                <p>Início: <span id="inicioSessao">—</span></p>
-                <p>Tempo: <span id="tempoSessao">00:00:00</span></p>
-            </div>
-
-        </section>
-
-        <!-- Limites de vazão e gráficos -->
-        <section class="grid">
-
-            <div class="card">
-                <h3>Limites de Vazão</h3>
-                <form id="formLimites" class="form-inline" onsubmit="event.preventDefault();">
-                    <label for="vazaoMinima">Vazão mínima (L/min)</label>
-                    <input id="vazaoMinima" type="number" step="0.01" min="0" />
-
-                    <label for="vazaoMaxima">Vazão máxima (L/min)</label>
-                    <input id="vazaoMaxima" type="number" step="0.01" min="0" />
-
-                    <button id="salvarLimites" class="btn">Salvar</button>
-                </form>
-            </div>
-
-            <div class="card" id="graficoCard">
-                <h3>Gráfico de Vazão</h3>
-                <!-- Espaço para o gráfico; o script atual não injeta nada aqui, mas deixamos o elemento -->
-                <div class="chart-wrap">
-                    <canvas id="graficoVazao" width="400" height="200"></canvas>
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <h3>Histórico da vazão</h3>
+                    </div>
+                    <div class="chart-wrap">
+                        <canvas id="graficoVazao" width="900" height="260"></canvas>
+                    </div>
                 </div>
-            </div>
+            </section>
 
-        </section>
+            <section class="screen" id="configuracoes-screen">
+                <div class="device-panel settings-panel">
+                    <div class="panel-header">
+                        <div class="device-icon" aria-hidden="true">◔</div>
+                        <div class="device-title-wrap">
+                            <h2>Dispositivo</h2>
+                            <p class="device-status-line">
+                                <span class="mini-indicator" id="miniIndicadorConexaoConfig"></span>
+                                <span id="statusESP32Config">ESP32 desconectado</span>
+                            </p>
+                        </div>
+                    </div>
 
-        <!-- Alertas -->
-        <section class="card" id="alertas">
-            <h2>Alertas</h2>
-            <div id="alertaAtual" class="alert alerta-atual">Nenhum alerta</div>
-            <div id="alertasRecentes" class="alert-list">
-                <!-- recentes serão listados aqui -->
-            </div>
-        </section>
+                    <div class="device-details-row">
+                        <div class="info-pill">
+                            <span class="info-label">Estado da bomba</span>
+                            <strong id="statusBombaConfig">Desligada</strong>
+                        </div>
+                    </div>
 
-    </main>
+                    <div class="action-row">
+                        <button id="conectarESP32Config" class="btn btn-primary">Conectar ESP32</button>
+                        <button id="desconectarESP32Config" class="btn btn-secondary" type="button">Desconectar</button>
+                    </div>
 
-    <footer class="footer">
-        <small>IrrigaSense — Monitoramento de irrigação</small>
-    </footer>
+                    <div class="action-row secondary-row">
+                        <button id="ligarBombaConfig" class="btn btn-primary" type="button">Ligar bomba</button>
+                        <button id="desligarBombaConfig" class="btn btn-danger" type="button">Desligar bomba</button>
+                    </div>
+                </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-    <script>
-        window.IRRIGASENSE_CONFIG = {
-            url: "https://uttgbuwdciegxvzytepk.supabase.co",
-            anonKey: "sb_publishable_8a4KAGBZTpEnBk1yU5eaqw_1CuwyBcB"
-        };
-    </script>
+                <div class="settings-panel range-panel">
+                    <h2>Faixa esperada de vazão</h2>
+                    <div class="field-grid">
+                        <label class="field-item">
+                            <span>Mínimo (L/min)</span>
+                            <input id="vazaoMinima" type="number" step="0.1" min="0" placeholder="0.0">
+                        </label>
+                        <label class="field-item">
+                            <span>Máximo (L/min)</span>
+                            <input id="vazaoMaxima" type="number" step="0.1" min="0" placeholder="0.0">
+                        </label>
+                    </div>
+
+                    <div class="toggle-row mode-row">
+                        <label class="switch" for="modoSimulacao">
+                            <input id="modoSimulacao" type="checkbox">
+                            <span class="switch-slider"></span>
+                        </label>
+                        <span id="modoSimulacaoTexto">Modo real</span>
+                    </div>
+
+                    <button id="salvarLimites" class="btn btn-primary full-width" type="button">Salvar faixa</button>
+                    <div id="mensagemConfiguracao" class="message-box info" aria-live="polite"></div>
+                </div>
+            </section>
+
+            <section class="screen" id="alertas-screen">
+                <div class="alerts-panel">
+                    <div class="alerts-header">
+                        <h2>Alertas</h2>
+                    </div>
+
+                    <div id="alertaAtual" class="alert-banner info">
+                        <span class="alert-icon">⚠</span>
+                        <div>
+                            <strong>Nenhum alerta</strong>
+                            <p>O sistema está estável no momento.</p>
+                        </div>
+                    </div>
+
+                    <div id="alertasRecentes" class="alert-list" aria-live="polite"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="config.example.js"></script>
     <script src="JS/script.js"></script>
 </body>
 

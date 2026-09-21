@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="IrrigaSense icon">
+  <defs>
+    <linearGradient id="dropFill" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#35ccff"/>
+      <stop offset="45%" stop-color="#12a4eb"/>
+      <stop offset="100%" stop-color="#0b6fc7"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M128 18 C178 18 210 60 210 104 C210 170 176 220 128 244 C80 220 46 170 46 104 C46 60 78 18 128 18 Z" fill="url(#dropFill)"/>
+  <path d="M128 54 C159 54 184 74 184 106 C184 150 162 190 128 216 C94 190 72 150 72 106 C72 74 97 54 128 54 Z" fill="#dff7ff" fill-opacity="0.38"/>
+
+  <g fill="#133d78" opacity="0.94">
+    <path d="M128 108 L128 186" stroke="#133d78" stroke-width="14" stroke-linecap="round"/>
+    <path d="M128 118 C95 121 86 149 74 168 C99 167 106 150 128 118 Z"/>
+    <path d="M128 118 C161 121 170 149 182 168 C157 167 150 150 128 118 Z"/>
+    <path d="M128 132 C106 137 95 159 90 177 C108 176 115 160 128 132 Z"/>
+    <path d="M128 132 C150 137 161 159 166 177 C148 176 141 160 128 132 Z"/>
+  </g>
+  <circle cx="128" cy="94" r="14" fill="#f2fbff"/>
+</svg>
