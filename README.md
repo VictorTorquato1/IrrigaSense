@@ -42,3 +42,24 @@ py -m http.server 8000
 Depois acesse `http://localhost:8000` em um navegador Chromium compatível com
 Web Serial. Configure `window.IRRIGASENSE_CONFIG` antes de abrir a página para
 habilitar Supabase.
+
+### Usar pelo Live Share
+
+O Live Share não inicia um servidor web automaticamente. No terminal do
+workspace anfitrião, inicie o servidor na pasta do projeto:
+
+```bash
+python3 -m http.server 8000
+```
+
+No Live Share, compartilhe a porta `8000` (comando **Live Share: Share Server**).
+Abra a URL do servidor compartilhado no navegador. Não abra o arquivo
+`index.html` diretamente nem use o endereço `localhost` da máquina convidada.
+
+### Controle da bomba pelo ESP32
+
+Conecte o ESP32 pela porta serial a `115200` baud. No protocolo textual, o
+dispositivo deve responder a `PING` com `IRRIGASENSE_OK`; depois, o site envia
+`LIGAR`, `DESLIGAR` ou `STATUS` e interpreta `STATUS:LIGADA` e
+`STATUS:DESLIGADA`. Os controles da bomba só são liberados após o
+reconhecimento do dispositivo. A comunicação JSON existente continua aceita.

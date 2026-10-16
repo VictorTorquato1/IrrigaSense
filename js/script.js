@@ -6,6 +6,10 @@ class IrrigaSenseSerial {
         this.decoder = new TextDecoder();
         this.buffer = "";
         this.conectado = false;
+        this.dispositivoReconhecido = false;
+        this.protocoloSerial = null;
+        this.timerHandshakeInicial = null;
+        this.timerPing = null;
         this.bombaLigada = false;
         this.vazaoAtual = 0;
         this.vazaoMedia = 0;
@@ -379,6 +383,11 @@ class IrrigaSenseSerial {
 
     atualizarStatusConexao(estado) {
         this.conectado = estado;
+        if (!estado) {
+            this.dispositivoReconhecido = false;
+            this.protocoloSerial = null;
+            this.pararHandshake();
+        }
 
         const texto = estado ? "ESP32 conectado" : "ESP32 desconectado";
         const elementos = [this.statusESP32, this.statusESP32Config];
@@ -394,6 +403,8 @@ class IrrigaSenseSerial {
         botoesConectar.forEach((botao) => {
             botao.disabled = estado;
         });
+
+        this.atualizarEstadoBomba(this.bombaLigada);
     }
 
     atualizarEstadoBomba(estado) {
@@ -405,21 +416,46 @@ class IrrigaSenseSerial {
 
         const botoesLigar = [this.botaoLigar, this.botaoLigarConfig].filter(Boolean);
         botoesLigar.forEach((botao) => {
-            if (!this.conectado) {
-                botao.disabled = true;
-            } else {
-                botao.disabled = this.bombaLigada;
-            }
+            botao.disabled = !this.conectado || !this.dispositivoReconhecido || this.bombaLigada;
         });
 
         const botoesDesligar = [this.botaoDesligar, this.botaoDesligarConfig].filter(Boolean);
         botoesDesligar.forEach((botao) => {
-            if (!this.conectado) {
-                botao.disabled = true;
-            } else {
-                botao.disabled = !this.bombaLigada;
-            }
+            botao.disabled = !this.conectado || !this.dispositivoReconhecido || !this.bombaLigada;
         });
+    }
+
+    reconhecerDispositivo(protocolo) {
+        if (!this.conectado) return;
+
+        this.protocoloSerial = protocolo;
+        this.dispositivoReconhecido = true;
+        this.pararHandshake();
+        this.atualizarEstadoBomba(this.bombaLigada);
+    }
+
+    iniciarHandshake() {
+        this.pararHandshake();
+        this.timerHandshakeInicial = window.setTimeout(() => {
+            this.timerHandshakeInicial = null;
+            void this.enviarLinhaSerial("PING");
+            this.timerPing = window.setInterval(() => {
+                if (!this.dispositivoReconhecido) {
+                    void this.enviarLinhaSerial("PING");
+                }
+            }, 1000);
+        }, 2000);
+    }
+
+    pararHandshake() {
+        if (this.timerHandshakeInicial) {
+            clearTimeout(this.timerHandshakeInicial);
+            this.timerHandshakeInicial = null;
+        }
+        if (this.timerPing) {
+            clearInterval(this.timerPing);
+            this.timerPing = null;
+        }
     }
 
     getLimites() {
@@ -531,10 +567,12 @@ class IrrigaSenseSerial {
             this.atualizarStatusConexao(true);
             this.mostrarMensagem("", "error");
             this.pararSimulacao();
-            this.iniciarLeitura();
-            this.enviarComando("STATUS");
+            this.iniciarHandshake();
+            void this.iniciarLeitura();
+            await this.enviarComando("STATUS");
         } catch (erro) {
             console.error("Erro ao conectar ao ESP32:", erro);
+            this.porta = null;
             this.atualizarStatusConexao(false);
             this.mostrarMensagem("Não foi possível conectar ao ESP32. Verifique a porta USB e tente novamente.", "error");
         }
@@ -559,11 +597,23 @@ class IrrigaSenseSerial {
                     const textoLimpo = linha.trim();
                     if (!textoLimpo) return;
 
+                    if (textoLimpo === "IRRIGASENSE_OK") {
+                        this.reconhecerDispositivo("texto");
+                        void this.enviarComando("STATUS");
+                        return;
+                    }
+
+                    if (textoLimpo === "STATUS:LIGADA" || textoLimpo === "STATUS:DESLIGADA") {
+                        this.protocoloSerial = "texto";
+                        this.atualizarEstadoBomba(textoLimpo === "STATUS:LIGADA");
+                        return;
+                    }
+
                     try {
                         const json = JSON.parse(textoLimpo);
                         this.receberDados(json);
                     } catch (erro) {
-                        console.warn("Linha inválida ignorada:", textoLimpo, erro);
+                        console.warn("Linha serial não reconhecida:", textoLimpo, erro);
                     }
                 });
             }
@@ -576,6 +626,7 @@ class IrrigaSenseSerial {
                 this.leitor = null;
             }
             this.atualizarStatusConexao(false);
+            this.atualizarEstadoBomba(false);
         }
     }
 
@@ -588,7 +639,8 @@ class IrrigaSenseSerial {
         }
 
         if (dados.tipo === "evento") {
-            if (dados.evento === "bomba") {
+            if (dados.evento === "bomba" && typeof dados.bombaLigada === "boolean") {
+                this.reconhecerDispositivo("json");
                 const estado = Boolean(dados.bombaLigada);
                 const mudouEstado = estado !== this.bombaLigada;
                 this.atualizarEstadoBomba(estado);
@@ -616,6 +668,7 @@ class IrrigaSenseSerial {
             return;
         }
 
+        this.reconhecerDispositivo("json");
         const vazao = Number(dados.vazaoLMin);
         const volume = Number(dados.volumeSessaoL);
         const tempoMs = Number(dados.tempoMs ?? 0);
@@ -661,16 +714,21 @@ class IrrigaSenseSerial {
             return;
         }
 
-        if (!this.porta.writable) return;
+        const mensagem = this.protocoloSerial === "texto"
+            ? `${comando}\n`
+            : `${JSON.stringify({ comando })}\n`;
+        await this.enviarLinhaSerial(mensagem.trimEnd());
+    }
 
+    async enviarLinhaSerial(linha) {
+        if (!this.porta || !this.porta.writable) return;
         try {
             this.escritor = this.porta.writable.getWriter();
-            const mensagem = JSON.stringify({ comando }) + "\n";
-            await this.escritor.write(this.encoderMensagem(mensagem));
-            console.log("Comando enviado:", mensagem.trim());
+            await this.escritor.write(this.encoderMensagem(`${linha}\n`));
+            console.log("Comando enviado:", linha);
             this.mostrarMensagem("", "error");
         } catch (erro) {
-            console.error("Erro ao enviar comando:", erro);
+            console.error("Erro ao enviar dados pela serial:", erro);
             this.mostrarMensagem("Não foi possível enviar o comando para o ESP32.", "error");
         } finally {
             if (this.escritor) {
@@ -710,9 +768,12 @@ class IrrigaSenseSerial {
 
     async desconectar(forcar = false) {
         if (this.leitor) {
-            await this.leitor.cancel();
-            this.leitor.releaseLock();
-            this.leitor = null;
+            const leitor = this.leitor;
+            await leitor.cancel();
+            if (this.leitor === leitor) {
+                leitor.releaseLock();
+                this.leitor = null;
+            }
         }
 
         if (this.escritor) {
