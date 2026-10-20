@@ -61,5 +61,6 @@ Abra a URL do servidor compartilhado no navegador. Não abra o arquivo
 Conecte o ESP32 pela porta serial a `115200` baud. No protocolo textual, o
 dispositivo deve responder a `PING` com `IRRIGASENSE_OK`; depois, o site envia
 `LIGAR`, `DESLIGAR` ou `STATUS` e interpreta `STATUS:LIGADA` e
-`STATUS:DESLIGADA`. Os controles da bomba só são liberados após o
-reconhecimento do dispositivo. A comunicação JSON existente continua aceita.
+`STATUS:DESLIGADA`. A cada segundo, também recebe `VAZAO:<L/min>;TOTAL:<litros>`
+e atualiza as leituras e o gráfico. Os controles da bomba só são liberados após
+o reconhecimento do dispositivo. A comunicação JSON existente continua aceita.

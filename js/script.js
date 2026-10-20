@@ -5,6 +5,7 @@ class IrrigaSenseSerial {
         this.escritor = null;
         this.decoder = new TextDecoder();
         this.buffer = "";
+        this.conectando = false;
         this.conectado = false;
         this.dispositivoReconhecido = false;
         this.protocoloSerial = null;
@@ -14,6 +15,8 @@ class IrrigaSenseSerial {
         this.vazaoAtual = 0;
         this.vazaoMedia = 0;
         this.volumeSessaoL = 0;
+        this.totalLitros = 0;
+        this.ultimoTotalSerialL = null;
         this.tempoSessaoMs = 0;
         this.ultimoTimestamp = 0;
         this.ultimoDadoRecebido = 0;
@@ -65,6 +68,7 @@ class IrrigaSenseSerial {
         this.vazaoAtualEl = document.getElementById("vazaoAtualValor");
         this.vazaoMediaEl = document.getElementById("vazaoMediaValor");
         this.volumeSessaoEl = document.getElementById("volumeSessaoValor");
+        this.totalLitrosEl = document.getElementById("totalLitrosValor");
         this.situacaoVazaoAtual = document.getElementById("situacaoVazaoAtual");
         this.situacaoVazaoMedia = document.getElementById("situacaoVazaoMedia");
         this.situacaoVolumeSessao = document.getElementById("situacaoVolumeSessao");
@@ -556,17 +560,21 @@ class IrrigaSenseSerial {
     }
 
     async conectar() {
+        if (this.conectado || this.conectando) return;
+
         if (!navigator.serial) {
             this.mostrarMensagem("Seu navegador não suporta Web Serial. Use Chrome ou Edge e execute o projeto em localhost, Live Server ou HTTPS.", "error");
             return;
         }
 
+        this.conectando = true;
         try {
             this.porta = await navigator.serial.requestPort();
             await this.porta.open({ baudRate: 115200 });
             this.atualizarStatusConexao(true);
             this.mostrarMensagem("", "error");
             this.pararSimulacao();
+            this.ultimoTotalSerialL = null;
             this.iniciarHandshake();
             void this.iniciarLeitura();
             await this.enviarComando("STATUS");
@@ -575,6 +583,8 @@ class IrrigaSenseSerial {
             this.porta = null;
             this.atualizarStatusConexao(false);
             this.mostrarMensagem("Não foi possível conectar ao ESP32. Verifique a porta USB e tente novamente.", "error");
+        } finally {
+            this.conectando = false;
         }
     }
 
@@ -593,29 +603,7 @@ class IrrigaSenseSerial {
                 const linhas = this.buffer.split(/\r?\n/);
                 this.buffer = linhas.pop() ?? "";
 
-                linhas.forEach((linha) => {
-                    const textoLimpo = linha.trim();
-                    if (!textoLimpo) return;
-
-                    if (textoLimpo === "IRRIGASENSE_OK") {
-                        this.reconhecerDispositivo("texto");
-                        void this.enviarComando("STATUS");
-                        return;
-                    }
-
-                    if (textoLimpo === "STATUS:LIGADA" || textoLimpo === "STATUS:DESLIGADA") {
-                        this.protocoloSerial = "texto";
-                        this.atualizarEstadoBomba(textoLimpo === "STATUS:LIGADA");
-                        return;
-                    }
-
-                    try {
-                        const json = JSON.parse(textoLimpo);
-                        this.receberDados(json);
-                    } catch (erro) {
-                        console.warn("Linha serial não reconhecida:", textoLimpo, erro);
-                    }
-                });
+                linhas.forEach((linha) => this.processarLinhaSerial(linha));
             }
         } catch (erro) {
             console.error("Erro na leitura serial:", erro);
@@ -627,6 +615,69 @@ class IrrigaSenseSerial {
             }
             this.atualizarStatusConexao(false);
             this.atualizarEstadoBomba(false);
+        }
+    }
+
+    processarLinhaSerial(linha) {
+        console.log("Linha serial recebida:", linha);
+        const textoLimpo = linha.trim();
+        if (!textoLimpo) return;
+
+        if (textoLimpo === "IRRIGASENSE_OK") {
+            this.reconhecerDispositivo("texto");
+            void this.enviarComando("STATUS");
+            return;
+        }
+
+        if (textoLimpo === "STATUS:LIGADA" || textoLimpo === "STATUS:DESLIGADA") {
+            this.protocoloSerial = "texto";
+            this.atualizarEstadoBomba(textoLimpo === "STATUS:LIGADA");
+            this.atualizarInterface();
+            return;
+        }
+
+        const dadosVazao = textoLimpo.match(/^VAZAO:([+-]?(?:\d+(?:\.\d*)?|\.\d+));TOTAL:([+-]?(?:\d+(?:\.\d*)?|\.\d+))$/i);
+        if (dadosVazao) {
+            const vazao = Number.parseFloat(dadosVazao[1]);
+            const total = Number.parseFloat(dadosVazao[2]);
+            console.log("Vazão serial parseada:", { vazaoLMin: vazao, totalLitros: total });
+
+            if (!Number.isFinite(vazao) || !Number.isFinite(total)) {
+                console.warn("Valores de vazão serial inválidos:", textoLimpo);
+                return;
+            }
+
+            this.processarVazaoSerial(vazao, total);
+            return;
+        }
+
+        try {
+            const json = JSON.parse(textoLimpo);
+            this.receberDados(json);
+        } catch (erro) {
+            console.warn("Linha serial não reconhecida:", textoLimpo, erro);
+        }
+    }
+
+    processarVazaoSerial(vazao, total) {
+        this.ultimoDadoRecebido = Date.now();
+        this.protocoloSerial = "texto";
+        this.vazaoAtual = vazao;
+        this.totalLitros = total;
+
+        if (this.ultimoTotalSerialL !== null && total >= this.ultimoTotalSerialL) {
+            this.volumeSessaoL += total - this.ultimoTotalSerialL;
+        }
+        this.ultimoTotalSerialL = total;
+
+        this.adicionarVazaoAoHistorico(vazao);
+        this.verificarAlertaVazao();
+        this.renderizarHistorico();
+        this.atualizarInterface();
+
+        if (Date.now() - this.ultimoPersistTimestamp >= this.INTERVALO_SALVAR_LEITURA_MS) {
+            this.ultimoPersistTimestamp = Date.now();
+            void this.salvarLeituraNoSupabase();
         }
     }
 
@@ -681,20 +732,11 @@ class IrrigaSenseSerial {
         this.bombaLigada = bombaAgora;
         this.vazaoAtual = Number.isFinite(vazao) ? vazao : 0;
         this.volumeSessaoL = Number.isFinite(volume) ? volume : 0;
+        this.totalLitros = this.volumeSessaoL;
         this.tempoSessaoMs = Number.isFinite(tempoMs) ? tempoMs : 0;
 
         if (this.bombaLigada && this.vazaoAtual >= 0 && Number.isFinite(this.vazaoAtual)) {
-            this.historicoVazao.push({
-                tempo: Date.now(),
-                valor: this.vazaoAtual
-            });
-
-            if (this.historicoVazao.length > 60) {
-                this.historicoVazao.shift();
-            }
-
-            const soma = this.historicoVazao.reduce((total, item) => total + item.valor, 0);
-            this.vazaoMedia = this.historicoVazao.length ? soma / this.historicoVazao.length : 0;
+            this.adicionarVazaoAoHistorico(this.vazaoAtual);
         }
 
         this.ultimaSessaoAtiva = this.bombaLigada;
@@ -706,6 +748,20 @@ class IrrigaSenseSerial {
             this.ultimoPersistTimestamp = Date.now();
             void this.salvarLeituraNoSupabase();
         }
+    }
+
+    adicionarVazaoAoHistorico(vazao) {
+        this.historicoVazao.push({
+            tempo: Date.now(),
+            valor: vazao
+        });
+
+        if (this.historicoVazao.length > 60) {
+            this.historicoVazao.shift();
+        }
+
+        const soma = this.historicoVazao.reduce((total, item) => total + item.valor, 0);
+        this.vazaoMedia = this.historicoVazao.length ? soma / this.historicoVazao.length : 0;
     }
 
     async enviarComando(comando) {
@@ -809,9 +865,9 @@ class IrrigaSenseSerial {
         return `${Number(valor).toFixed(casas)} L/min`;
     }
 
-    formatarVolume(valor) {
-        if (!Number.isFinite(valor)) return "0.0 L";
-        return `${Number(valor).toFixed(1)} L`;
+    formatarVolume(valor, casas = 1) {
+        if (!Number.isFinite(valor)) return `${Number(0).toFixed(casas)} L`;
+        return `${Number(valor).toFixed(casas)} L`;
     }
 
     atualizarInterface() {
@@ -827,6 +883,10 @@ class IrrigaSenseSerial {
 
         if (this.volumeSessaoEl) {
             this.volumeSessaoEl.textContent = this.formatarVolume(this.volumeSessaoL);
+        }
+
+        if (this.totalLitrosEl) {
+            this.totalLitrosEl.textContent = this.formatarVolume(this.totalLitros, 3);
         }
 
         const situacaoAtual = this.definirSituacao(this.vazaoAtual);
