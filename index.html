@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#f4f6f8">
+    <meta name="theme-color" content="#0b2e38">
     <meta name="description" content="Monitoramento e controle inteligente de irrigação com o IrrigaSense.">
     <title>IrrigaSense | Monitoramento de irrigação</title>
     <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
@@ -21,7 +21,7 @@
             <a class="brand" href="#" aria-label="IrrigaSense — início">
                 <img
                     src="design/rem-removebg-preview.png"
-                    alt="Logo IrrigaSense"
+                    alt="IrrigaSense"
                     class="logo-irrigasense"
                 >
             </a>
@@ -31,190 +31,235 @@
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
                     <span>Início</span>
                 </a>
-                <a href="#" class="nav-link" data-screen="configuracoes">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1a1.7 1.7 0 1 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 1 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 1 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 1 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 1 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z"/></svg>
-                    <span>Configuração</span>
-                </a>
                 <a href="#" class="nav-link" data-screen="alertas">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg>
-                    <span>Alerta</span>
+                    <span>Alertas</span>
+                </a>
+                <a href="#" class="nav-link" data-screen="configuracoes">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1a1.7 1.7 0 1 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 1 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 1 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 1 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 1 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z"/></svg>
+                    <span>Configurações</span>
                 </a>
             </nav>
         </header>
 
         <main class="main-content">
-            <section class="screen active" id="inicio-screen" aria-label="Início">
-                <section class="metrics-grid" aria-label="Monitoramento da irrigação">
-                    <article class="metric-card pump-card">
-                        <div class="pump-heading">
-                            <svg class="pump-icon" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M3 8c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2S18.4 8 21 8M3 13c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.8 2M3 18c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 4.8 2"/>
-                            </svg>
-                            <h1>Bomba</h1>
-                        </div>
-                        <div class="pump-state">
-                            <strong id="statusBomba">Desligada</strong>
-                            <span class="device-status-line">
-                                <span class="mini-indicator" id="miniIndicadorConexao"></span>
-                                <span id="statusESP32">ESP32 desconectado</span>
-                            </span>
-                        </div>
-                        <div class="pump-actions">
-                            <div class="pump-toggle" role="group" aria-label="Controle da bomba">
-                                <button id="ligarBomba" class="pump-button pump-button-on" type="button" aria-label="Ligar bomba">ON</button>
-                                <button id="desligarBomba" class="pump-button pump-button-off" type="button" aria-label="Desligar bomba">OFF</button>
-                            </div>
-                            <span class="pump-separator" aria-hidden="true"></span>
-                            <span class="pump-light" aria-hidden="true"></span>
-                        </div>
-                        <div class="connection-actions">
-                            <button id="conectarESP32" class="connection-button" type="button">Conectar</button>
-                            <button id="desconectarESP32" class="connection-button" type="button">Desconectar</button>
-                        </div>
-                        <div id="mensagemErro" class="message-box error" aria-live="polite"></div>
-                    </article>
+            <section class="screen active" id="inicio-screen" aria-labelledby="dashboard-title">
+                <div class="page-heading">
+                    <div>
+                        <p class="eyebrow">PAINEL DE MONITORAMENTO</p>
+                        <h1 id="dashboard-title">Visão geral</h1>
+                        <p class="page-description">Acompanhe seu sistema de irrigação em tempo real.</p>
+                    </div>
+                    <div class="live-badge">
+                        <span class="live-dot" aria-hidden="true"></span>
+                        Monitoramento ativo
+                    </div>
+                </div>
 
-                    <article class="metric-card">
-                        <div class="metric-topline">
-                            <div class="metric-title">
-                                <svg class="metric-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2c-2.8 4-6 7.2-6 11.2a6 6 0 0 0 12 0c0-4-3.2-7.2-6-11.2Z"/></svg>
-                                <h2>Vazão atual</h2>
+                <section class="device-panel card" aria-labelledby="device-title">
+                    <div class="device-overview">
+                        <div class="device-heading">
+                            <div class="device-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M12 3.2c-2.8 4-6 7.2-6 11.2a6 6 0 0 0 12 0c0-4-3.2-7.2-6-11.2Z"/><path d="M9 15.5a3 3 0 0 0 3 3"/></svg>
                             </div>
-                            <span class="metric-dot" aria-hidden="true"></span>
+                            <div class="device-title-wrap">
+                                <h2 id="device-title">Dispositivo</h2>
+                                <p class="device-status-line">
+                                    <span class="mini-indicator" id="miniIndicadorConexao"></span>
+                                    <span id="statusESP32">ESP32 desconectado</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="device-state">
+                            <span class="info-label">Estado da bomba</span>
+                            <strong id="statusBomba">Desligada</strong>
+                        </div>
+                    </div>
+
+                    <div class="device-controls">
+                        <div class="connection-actions" aria-label="Conexão com o dispositivo">
+                            <button id="conectarESP32" class="btn btn-primary" type="button">Conectar ESP32</button>
+                            <button id="desconectarESP32" class="btn btn-secondary" type="button">Desconectar</button>
+                        </div>
+                        <div class="pump-control">
+                            <span class="pump-light" aria-hidden="true"></span>
+                            <div class="pump-toggle" role="group" aria-label="Controle da bomba">
+                                <button id="ligarBomba" class="btn pump-button pump-button-on" type="button">Ligar bomba</button>
+                                <button id="desligarBomba" class="btn pump-button pump-button-off" type="button">Desligar bomba</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="mensagemErro" class="message-box error" aria-live="polite"></div>
+                </section>
+
+                <section class="metrics-grid" aria-label="Métricas de irrigação">
+                    <article class="metric-card card">
+                        <div class="metric-topline">
+                            <span class="metric-label">Vazão atual</span>
+                            <span class="metric-icon metric-icon-cyan" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M12 3.2c-2.8 4-6 7.2-6 11.2a6 6 0 0 0 12 0c0-4-3.2-7.2-6-11.2Z"/><path d="M9 15.5a3 3 0 0 0 3 3"/></svg>
+                            </span>
                         </div>
                         <strong class="metric-value" id="vazaoAtualValor">0.0 L/min</strong>
                         <span class="metric-situation none" id="situacaoVazaoAtual">Sem leitura</span>
-                        <span class="metric-meter" aria-hidden="true"><span class="meter-fill"></span></span>
+                        <span class="metric-meter" aria-hidden="true"><span class="meter-fill meter-cyan"></span></span>
                     </article>
 
-                    <article class="metric-card">
+                    <article class="metric-card card">
                         <div class="metric-topline">
-                            <div class="metric-title">
-                                <svg class="metric-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2c-2.8 4-6 7.2-6 11.2a6 6 0 0 0 12 0c0-4-3.2-7.2-6-11.2Z"/></svg>
-                                <h2>Vazão média</h2>
-                            </div>
-                            <span class="metric-dot" aria-hidden="true"></span>
+                            <span class="metric-label">Vazão média</span>
+                            <span class="metric-icon metric-icon-blue" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M4 18V6m0 12h16"/><path d="m7 14 4-4 3 2 5-6"/></svg>
+                            </span>
                         </div>
                         <strong class="metric-value" id="vazaoMediaValor">0.0 L/min</strong>
                         <span class="metric-situation none" id="situacaoVazaoMedia">Sem leitura</span>
-                        <span class="metric-meter" aria-hidden="true"><span class="meter-fill"></span></span>
+                        <span class="metric-meter" aria-hidden="true"><span class="meter-fill meter-blue"></span></span>
                     </article>
 
-                    <article class="metric-card volume-card">
+                    <article class="metric-card card">
                         <div class="metric-topline">
-                            <div class="metric-title">
-                                <svg class="metric-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2c-2.8 4-6 7.2-6 11.2a6 6 0 0 0 12 0c0-4-3.2-7.2-6-11.2Z"/></svg>
-                                <h2>Volume usado</h2>
-                            </div>
-                            <span class="metric-dot" aria-hidden="true"></span>
+                            <span class="metric-label">Volume utilizado</span>
+                            <span class="metric-icon metric-icon-green" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M12 3.2c-2.8 4-6 7.2-6 11.2a6 6 0 0 0 12 0c0-4-3.2-7.2-6-11.2Z"/><path d="M9 15.5a3 3 0 0 0 3 3"/></svg>
+                            </span>
                         </div>
                         <strong class="metric-value" id="volumeSessaoValor">0.0 L</strong>
                         <span class="metric-situation none" id="situacaoVolumeSessao">Sem leitura</span>
-                        <span class="volume-total">Total acumulado: <strong id="totalLitrosValor">0.0 L</strong></span>
-                        <span class="metric-meter" aria-hidden="true"><span class="meter-fill"></span></span>
+                        <span class="metric-meter" aria-hidden="true"><span class="meter-fill meter-green"></span></span>
+                    </article>
+
+                    <article class="metric-card card">
+                        <div class="metric-topline">
+                            <span class="metric-label">Total acumulado</span>
+                            <span class="metric-icon metric-icon-navy" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16"/><path d="M8 15v-3m4 3V7m4 8v-5m4 5V9"/></svg>
+                            </span>
+                        </div>
+                        <strong class="metric-value" id="totalLitrosValor">0.0 L</strong>
+                        <span class="metric-situation metric-note">Informado pelo ESP32</span>
+                        <span class="metric-meter" aria-hidden="true"><span class="meter-fill meter-navy"></span></span>
                     </article>
                 </section>
 
-                <section class="chart-card" aria-labelledby="flow-history-title">
-                    <h2 id="flow-history-title">Historico da vazao</h2>
-                    <div class="chart-layout">
-                        <div class="chart-y-axis" aria-hidden="true">
-                            <span>50</span><span>40</span><span>30</span><span>20</span><span>10</span><span>0</span>
+                <section class="chart-panel card" aria-labelledby="flow-history-title">
+                    <div class="section-heading chart-header">
+                        <div>
+                            <p class="eyebrow">DADOS DO SISTEMA</p>
+                            <h2 id="flow-history-title">Histórico da vazão</h2>
                         </div>
-                        <div class="chart-plot">
-                            <canvas id="graficoVazao" width="900" height="260" role="img" aria-label="Gráfico do histórico da vazão em litros por minuto"></canvas>
-                            <div class="chart-x-axis" aria-hidden="true">
-                                <span>08h</span><span>10h</span><span>12h</span><span>14h</span><span>16h</span>
-                            </div>
-                        </div>
+                        <span class="chart-unit">L/min</span>
+                    </div>
+                    <div class="chart-wrap">
+                        <canvas id="graficoVazao" width="900" height="260" role="img" aria-label="Gráfico do histórico de vazão"></canvas>
                     </div>
                 </section>
             </section>
 
-            <section class="screen" id="configuracoes-screen" aria-label="Configuração">
-                <section class="range-card" aria-label="Faixa esperada de vazão">
+            <section class="screen" id="configuracoes-screen" aria-labelledby="settings-title">
+                <div class="page-heading">
+                    <div>
+                        <p class="eyebrow">CONTROLE DO SISTEMA</p>
+                        <h1 id="settings-title">Configurações</h1>
+                        <p class="page-description">Gerencie o dispositivo e defina os parâmetros da irrigação.</p>
+                    </div>
+                </div>
+
+                <section class="device-panel settings-panel card" aria-labelledby="settings-device-title">
+                    <div class="device-overview">
+                        <div class="device-heading">
+                            <div class="device-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M12 3.2c-2.8 4-6 7.2-6 11.2a6 6 0 0 0 12 0c0-4-3.2-7.2-6-11.2Z"/><path d="M9 15.5a3 3 0 0 0 3 3"/></svg>
+                            </div>
+                            <div class="device-title-wrap">
+                                <h2 id="settings-device-title">Dispositivo</h2>
+                                <p class="device-status-line">
+                                    <span class="mini-indicator" id="miniIndicadorConexaoConfig"></span>
+                                    <span id="statusESP32Config">ESP32 desconectado</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="device-state">
+                            <span class="info-label">Estado da bomba</span>
+                            <strong id="statusBombaConfig">Desligada</strong>
+                        </div>
+                    </div>
+
+                    <div class="device-controls">
+                        <div class="connection-actions" aria-label="Conexão com o dispositivo">
+                            <button id="conectarESP32Config" class="btn btn-primary" type="button">Conectar ESP32</button>
+                            <button id="desconectarESP32Config" class="btn btn-secondary" type="button">Desconectar</button>
+                        </div>
+                        <div class="pump-control">
+                            <span class="pump-light" aria-hidden="true"></span>
+                            <div class="pump-toggle" role="group" aria-label="Controle da bomba">
+                                <button id="ligarBombaConfig" class="btn pump-button pump-button-on" type="button">Ligar bomba</button>
+                                <button id="desligarBombaConfig" class="btn pump-button pump-button-off" type="button">Desligar bomba</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="settings-panel range-panel card" aria-labelledby="range-title">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">PARÂMETROS DE OPERAÇÃO</p>
+                            <h2 id="range-title">Faixa esperada de vazão</h2>
+                        </div>
+                    </div>
                     <div class="field-grid">
                         <label class="field-item" for="vazaoMinima">
-                            <span>Mínimo (L/min)</span>
-                            <input id="vazaoMinima" type="number" step="0.1" min="0" placeholder="00,00">
+                            <span>Mínimo <span class="field-unit">(L/min)</span></span>
+                            <input id="vazaoMinima" type="number" step="0.1" min="0" placeholder="0.0">
                         </label>
                         <label class="field-item" for="vazaoMaxima">
-                            <span>Máximo (L/min)</span>
-                            <input id="vazaoMaxima" type="number" step="0.1" min="0" placeholder="00,00">
+                            <span>Máximo <span class="field-unit">(L/min)</span></span>
+                            <input id="vazaoMaxima" type="number" step="0.1" min="0" placeholder="0.0">
                         </label>
                     </div>
-                    <div class="mode-row">
+
+                    <div class="toggle-row mode-row">
                         <label class="switch" for="modoSimulacao">
                             <input id="modoSimulacao" type="checkbox">
                             <span class="switch-slider" aria-hidden="true"></span>
                         </label>
                         <span id="modoSimulacaoTexto">Modo real</span>
                     </div>
-                    <button id="salvarLimites" class="save-button" type="button">Salvar</button>
+
+                    <button id="salvarLimites" class="btn btn-primary save-button" type="button">Salvar faixa</button>
                     <div id="mensagemConfiguracao" class="message-box info" aria-live="polite"></div>
                 </section>
-
-                <details class="configuration-device">
-                    <summary>Conexão e controles do dispositivo</summary>
-                    <div class="configuration-device-content">
-                        <div class="configuration-status">
-                            <span class="mini-indicator" id="miniIndicadorConexaoConfig"></span>
-                            <span id="statusESP32Config">ESP32 desconectado</span>
-                            <span class="configuration-pump-status">Bomba: <strong id="statusBombaConfig">Desligada</strong></span>
-                        </div>
-                        <div class="connection-actions">
-                            <button id="conectarESP32Config" class="connection-button" type="button">Conectar</button>
-                            <button id="desconectarESP32Config" class="connection-button" type="button">Desconectar</button>
-                            <button id="ligarBombaConfig" class="connection-button pump-button-on" type="button">Ligar bomba</button>
-                            <button id="desligarBombaConfig" class="connection-button pump-button-off" type="button">Desligar bomba</button>
-                        </div>
-                    </div>
-                </details>
             </section>
 
-            <section class="screen" id="alertas-screen" aria-label="Alerta">
-                <section class="alerts-list" aria-label="Alertas do sistema">
-                    <div id="alertaAtual" class="alert-banner info" aria-live="polite">
-                        <span class="alert-icon" aria-hidden="true">!</span>
+            <section class="screen" id="alertas-screen" aria-labelledby="alerts-title">
+                <div class="page-heading">
+                    <div>
+                        <p class="eyebrow">ACOMPANHAMENTO DO SISTEMA</p>
+                        <h1 id="alerts-title">Alertas</h1>
+                        <p class="page-description">Acompanhe eventos e condições fora da faixa esperada.</p>
+                    </div>
+                </div>
+
+                <section class="alerts-panel card" aria-labelledby="alerts-panel-title">
+                    <div class="section-heading alerts-header">
                         <div>
-                            <strong>Nenhum alerta no momento</strong>
-                            <p>O sistema está estável.</p>
+                            <p class="eyebrow">STATUS E EVENTOS</p>
+                            <h2 id="alerts-panel-title">Central de alertas</h2>
                         </div>
                     </div>
 
-                    <div class="alert-examples" aria-label="Exemplos de alertas">
-                        <article class="alert-example">
-                            <div class="alert-card-heading">
-                                <span class="alert-circle" aria-hidden="true">!</span>
-                                <h2>Alerta</h2>
-                                <button class="alert-close" type="button" aria-label="Fechar alerta" onclick="this.closest('.alert-example').remove()">×</button>
-                            </div>
-                            <div class="alert-message">
-                                <span class="alert-triangle" aria-hidden="true">!</span>
-                                <div>
-                                    <h3>Vazão abaixo do esperado</h3>
-                                    <p>A vazão média está abaixo do valor esperado</p>
-                                </div>
-                            </div>
-                        </article>
-                        <article class="alert-example">
-                            <div class="alert-card-heading">
-                                <span class="alert-circle" aria-hidden="true">!</span>
-                                <h2>Alerta</h2>
-                                <button class="alert-close" type="button" aria-label="Fechar alerta" onclick="this.closest('.alert-example').remove()">×</button>
-                            </div>
-                            <div class="alert-message">
-                                <span class="alert-triangle" aria-hidden="true">!</span>
-                                <div>
-                                    <h3>Vazão abaixo do esperado</h3>
-                                    <p>A vazão média está abaixo do valor esperado</p>
-                                </div>
-                            </div>
-                        </article>
+                    <div id="alertaAtual" class="alert-banner info" aria-live="polite">
+                        <span class="alert-icon" aria-hidden="true">✓</span>
+                        <div>
+                            <strong>Nenhum alerta</strong>
+                            <p>O sistema está estável no momento.</p>
+                        </div>
                     </div>
 
+                    <div class="alert-list-heading">
+                        <h3>Alertas recentes</h3>
+                    </div>
                     <div id="alertasRecentes" class="alert-list" aria-live="polite"></div>
-                    <p class="empty-alert-state">Nenhum alerta no momento</p>
                 </section>
             </section>
         </main>
