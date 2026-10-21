@@ -1,0 +1,451 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.navbar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+
+    width: 100%;
+    height: 65px;
+
+    background-color: #eef6ff;
+    border-bottom: 1px solid #cbd5df;
+    box-sizing: border-box;
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    width: 100%;
+    height: 330px;
+    box-sizing: border-box;
+
+    transform: translateY(-20px);
+}
+
+
+.item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    height: 100%;
+    padding: 4px 12px;
+
+    box-sizing: border-box;
+    text-decoration: none;
+    color: #666;
+    border-left: 1px solid #888;
+}
+
+.item i {
+    font-size: 30px;
+    margin-bottom: 3px;
+}
+
+.item span {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    margin-right: auto;
+}
+
+.logo img {
+    width: 170px;
+    height: auto;
+}
+.quadrado1{
+    background-color: #F6FAFD;
+    width: 270px;
+    height: 150px;
+    border-radius: 10px;
+    border: 1px solid #C4D7EC;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+
+}
+.quadrado2{
+    background-color: #F6FAFD;
+    width: 270px;
+    height: 150px;
+    border-radius: 10px;
+    border: 1px solid #C4D7EC;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+
+}
+
+
+.area-grafico {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 300px;
+    margin-top: -30px;
+}
+
+.Grafico {
+    background-color: #f6fafd;
+    width: calc(100% - 40px);
+    max-width: 1200px;
+    min-height: 280px;
+    border-radius: 12px;
+    border: 2px solid #C4D7EC;
+    box-shadow: 0 5px 18px rgba(27, 74, 112, 0.08);
+    padding: 20px 24px 16px;
+    box-sizing: border-box;
+    color: #303943;
+}
+
+.Grafico .vazao {
+    margin: 0 0 18px 4px;
+    font-size: 21px;
+    font-weight: 700;
+}
+
+.grafico-conteudo {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    height: 250px;
+}
+
+.valores-y {
+    display: flex;
+    flex: 0 0 24px;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 0 21px;
+    box-sizing: border-box;
+    color: #303943;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.grafico-principal {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+}
+
+.grade {
+    position: absolute;
+    inset: 0 0 21px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-left: 1px solid #aab5bf;
+    border-bottom: 1px solid #aab5bf;
+    background-image:
+        linear-gradient(to right, transparent 24.8%, rgba(73, 84, 95, 0.62) 25%, transparent 25.2%),
+        linear-gradient(to right, transparent 49.8%, rgba(73, 84, 95, 0.62) 50%, transparent 50.2%),
+        linear-gradient(to right, transparent 74.8%, rgba(73, 84, 95, 0.62) 75%, transparent 75.2%);
+}
+
+.grade span {
+    display: block;
+    width: 100%;
+    border-top: 1px solid rgba(73, 84, 95, 0.62);
+}
+
+.linha-grafico {
+    position: absolute;
+    inset: 0 0 21px;
+    width: 100%;
+    height: calc(100% - 21px);
+    overflow: visible;
+}
+
+
+
+.horarios {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    justify-content: space-between;
+    color: #303943;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+@media (max-width: 600px) {
+    .area-grafico {
+        height: auto;
+        margin: 0 0 24px;
+    }
+
+    .Grafico {
+        width: calc(100% - 24px);
+        min-height: 250px;
+        padding: 18px 14px 14px;
+    }
+
+    .Grafico .vazao {
+        margin-left: 0;
+        font-size: 18px;
+    }
+
+    .grafico-conteudo {
+        gap: 7px;
+        height: 220px;
+    }
+
+    .valores-y,
+    .horarios {
+        font-size: 11px;
+    }
+}
+
+
+.quadrado2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+   
+
+}
+
+.quadrado2 i {
+     padding-left: 15px;
+      height: 120px;
+    font-size: 24px;
+}
+
+.vazao2 {
+      height: 120px;
+    margin: 0;
+}
+
+.quadrado3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.quadrado3 i {
+     padding-left: 15px;
+     height: 120px;
+    font-size: 24px;
+}
+
+.vazao3 {
+     height: 120px;
+    margin: 0;
+}
+
+.quadrado4{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.quadrado4 i {
+     padding-left: 15px;
+     height: 120px;
+    font-size: 24px;
+}
+.vazao4{
+     height: 120px;
+    margin: 0;
+}
+.quadrado1 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.quadrado1 i {
+     padding-left: 15px;
+     height: 120px;
+    font-size: 24px;
+}
+
+.vazao1 {
+     height: 120px;
+    margin: 0;
+}
+
+
+
+.linha {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    justify-content: flex-start;
+    margin-left: -90px;
+}
+.botao {
+    width: 88px;
+    height: 32px;
+    border: 1px solid #c8d8e8;
+    border-radius: 20px;
+    background: #dce8f4;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0;
+    box-sizing: border-box;
+    position: relative;
+    cursor: pointer;
+    box-shadow: inset 0 1px 2px rgba(25, 56, 95, 0.08);
+}
+
+.botao::before {
+    position: absolute;
+    top: 2px;
+    right: 23px;
+    bottom: 2px;
+    left: 3px;
+    border-radius: 18px;
+    background: #aab8cc;
+    content: "";
+}
+
+.circulo {
+    width: 24px;
+    height: 24px;
+    background: white;
+    border-radius: 50%;
+    border: none;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    margin-left: 3px;
+    box-shadow: 0 1px 2px rgba(25, 56, 95, 0.16);
+}
+
+#textoBomba {
+    position: absolute;
+    right: 6px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #23486d;
+    z-index: 2;
+}
+
+.separador {
+    width: 1px;
+    height: 28px;
+    background: #c9d8e8;
+}
+
+.luz {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: red;
+}
+
+
+.quadrado2 {
+    position: relative;
+}
+
+.controle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 12px;
+    padding: 0 12px;
+    box-sizing: border-box;
+}
+
+.medidor {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+.medidor h1 {
+    margin: 0 0 15px;
+    font-size: 40px;
+    font-weight: bold;
+    color: #19385f;
+    white-space: nowrap;
+}
+
+.barra {
+    width: 100%;
+    height: 8px;
+    background: #c8e8dc;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progresso {
+    width: 0%;
+    height: 100%;
+    background: #35b58a;
+    border-radius: 10px;
+}
+
+.quadrado2 {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    grid-template-rows: 28px 1fr;
+    align-items: center;
+    column-gap: 4px;
+    padding: 10px 16px;
+    box-sizing: border-box;
+    border-radius: 8px;
+    background: #f6fafd;
+}
+
+.quadrado2::after {
+    position: absolute;
+    top: 9px;
+    right: 10px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #19e933;
+    content: "";
+}
+
+.quadrado2 > i {
+    grid-column: 1;
+    grid-row: 1;
+    height: auto;
+    padding: 0;
+    color: #19385f;
+    font-size: 24px;
+}
+
+.quadrado2 > .vazao2 {
+    grid-column: 2;
+    grid-row: 1;
+    height: auto;
+    margin: 0;
+    color: #19385f;
+    white-space: nowrap;
+}
+
+.quadrado2 > .controle {
+    position: static;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+    padding: 0 3px;
+}
+
+.quadrado2 .medidor h1 {
+    margin: 0 0 15px;
+    color: #19385f;
+}
+
+.quadrado2 .barra {
+    width: 100%;
+    height: 8px;
+}

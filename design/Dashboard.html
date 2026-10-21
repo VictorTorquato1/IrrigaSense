@@ -1,0 +1,156 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet"href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/Dashboard.css">
+    <title>IrrigaSense</title>
+</head>
+
+<body>
+
+    <nav class="navbar">
+
+         <a href="#" class="logo">
+            <img src="img/rem-removebg-preview.png" alt="Logo">
+        </a>
+
+        <a href="Dashboard.html" class="item">
+            <i class="fa-solid fa-house"></i>
+            <span>Início</span>
+        </a>
+
+        <a href="configuraçao.html" class="item">
+            <i class="fa-solid fa-gear"></i>
+            <span>Configuração</span>
+        </a>
+
+        <a href="alerta.html" class="item">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>Alerta</span>
+        </a>
+
+    </nav>
+    <div class="container">
+
+    <div class="quadrado1">
+        <i class="bi bi-water"></i>
+     <h2 class="vazao1">Bomba</h2>
+
+
+      <div class="linha">
+        <button id="botaoBomba" class="botao">
+            <span class="circulo"></span>
+            <span id="textoBomba">OFF</span>
+        </button>
+
+        <div class="separador"></div>
+
+        <span id="luzBomba" class="luz"></span>
+    </div>
+    </div>
+
+     <div class="quadrado2">
+        <i class="bi bi-droplet"></i>
+        <h2 class="vazao2">Vazao Atual</h2>
+
+    <div class="controle">
+        <div class="medidor">
+    <h1>0.0 L/min</h1>
+
+    <div class="barra">
+        <div class="progresso"></div>
+    </div>
+    </div>
+</div>
+
+    </div>
+
+       <div class="quadrado2">
+        <i class="bi bi-droplet"></i>
+        <h2 class="vazao2">Vazao media</h2>
+
+    <div class="controle">
+        <div class="medidor">
+    <h1>0.0 L/min</h1>
+
+    <div class="barra">
+        <div class="progresso"></div>
+    </div>
+    </div>
+</div>
+
+    </div>
+      
+       <div class="quadrado2">
+        <i class="bi bi-droplet"></i>
+        <h2 class="vazao2">Volume Usado</h2>
+
+    <div class="controle">
+        <div class="medidor">
+    <h1>0.0 L/min</h1>
+    <div class="barra">
+        <div class="progresso"></div>
+    </div>
+    </div>
+</div>
+
+    </div>
+       
+       </div>
+
+      
+<div class="area-grafico">
+    <div class="Grafico">
+        <h2 class="vazao">Historico da vazao</h2>
+
+        <div class="grafico-conteudo">
+            <div class="valores-y">
+                <span>50</span>
+                <span>40</span>
+                <span>30</span>
+                <span>20</span>
+                <span>10</span>
+                <span>0</span>
+            </div>
+
+            <div class="grafico-principal">
+                <div class="grade">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+
+                <svg class="linha-grafico"
+                     viewBox="0 0 600 120"
+                     preserveAspectRatio="none">
+                    <polyline
+                        id="linhaVazao"
+                        points="0,60 55,52 88,82 145,30 202,83 260,30 290,24 345,84 420,10 500,90 550,45 600,110"
+                        fill="none"
+                        stroke="#60a5fa"
+                        stroke-width="1"
+                        vector-effect="non-scaling-stroke"/>
+                </svg>
+
+                <div class="horarios">
+                    <span>08h</span>
+                    <span>10h</span>
+                    <span>12h</span>
+                    <span>14h</span>
+                    <span>16h</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</body>
+</html>

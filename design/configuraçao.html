@@ -1,0 +1,59 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="css/configuraçao.css?v=2">
+    <title>IrrigaSense</title>
+</head>
+
+<body>
+
+    <nav class="navbar">
+
+         <a href="#" class="logo">
+            <img src="img/rem-removebg-preview.png" alt="Logo">
+        </a>
+
+        <a href="Dashboard.html" class="item">
+            <i class="fa-solid fa-house"></i>
+            <span>Início</span>
+        </a>
+
+        <a href="configuraçao.html" class="item">
+            <i class="fa-solid fa-gear"></i>
+            <span>Configuração</span>
+        </a>
+
+        <a href="alerta.html" class="item">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>Alerta</span>
+        </a>
+
+    </nav>
+
+       <div class="container">
+        <section class="faixa" aria-labelledby="titulo-faixa">
+            <h2 id="titulo-faixa">Faixa esperada da vazão</h2>
+
+            <form class="formulario-faixa" id="form-faixa-vazao">
+                <div class="campos-faixa">
+                    <div class="campo-faixa">
+                        <label for="vazao-minima">Mínimo (L/min)</label>
+                        <input id="vazao-minima" name="minima" type="number" min="0" step="0.01" value="0.00" required>
+                    </div>
+                    <div class="campo-faixa">
+                        <label for="vazao-maxima">Máximo (L/min)</label>
+                        <input id="vazao-maxima" name="maxima" type="number" min="0" step="0.01" value="0.00" required>
+                    </div>
+                </div>
+                <button class="botao-salvar" type="submit">Salvar</button>
+                <p class="mensagem-salvamento" id="mensagem-salvamento" aria-live="polite"></p>
+            </form>
+        </section>
+    </div>t>
+
+</body>
+</html>
