@@ -2,9 +2,10 @@
 
 ## Integração Supabase
 
-O projeto continua sendo um frontend estático e usa `@supabase/supabase-js` e
-Chart.js por CDN. O navegador não consegue ler um arquivo `.env` sozinho. Em
-produção, injete as variáveis públicas no HTML antes de `JS/script.js`:
+O projeto continua sendo um frontend estático e usa `@supabase/supabase-js`
+por CDN. O gráfico é desenhado diretamente em um elemento canvas. O navegador
+não consegue ler um arquivo `.env` sozinho. Em produção, injete as variáveis
+públicas no HTML antes de `js/script.js`:
 
 ```html
 <script>
