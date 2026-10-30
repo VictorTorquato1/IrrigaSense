@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#0b2e38">
+    <meta name="theme-color" content="#f2f6f7">
     <meta name="description" content="Monitoramento e controle inteligente de irrigação com o IrrigaSense.">
     <title>IrrigaSense | Monitoramento de irrigação</title>
     <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
@@ -32,7 +32,10 @@
                     <span>Início</span>
                 </a>
                 <a href="#" class="nav-link" data-screen="alertas">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg>
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg>
+                        <span class="alert-badge" id="alertBadge" aria-hidden="true" hidden></span>
+                    </span>
                     <span>Alertas</span>
                 </a>
                 <a href="#" class="nav-link" data-screen="configuracoes">

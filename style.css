@@ -1,28 +1,28 @@
 /* Design tokens */
 :root {
-    color-scheme: dark;
-    --bg: #0b2e38;
-    --bg-deep: #08232b;
-    --bg-elevated: #103f4c;
-    --surface: #14505f;
-    --surface-hover: #1a6072;
-    --surface-input: #0e3a46;
-    --border: #2a7384;
-    --text: #e8f6f9;
-    --text-muted: #9cc7d1;
-    --primary: #22b8e8;
-    --primary-hover: #4cc9f0;
-    --accent-ok: #34d399;
-    --accent-warn: #fbbf24;
-    --accent-danger: #f87171;
-    --accent-danger-text: #ffaaaa;
-    --text-on-primary: #0b2e38;
+    color-scheme: light;
+    --bg: #f2f6f7;
+    --bg-deep: #eaf0f2;
+    --bg-elevated: #ffffff;
+    --surface: #ffffff;
+    --surface-hover: #f7fafb;
+    --surface-input: #f4f8f9;
+    --border: #788f98;
+    --text: #172b33;
+    --text-muted: #52666f;
+    --primary: #087694;
+    --primary-hover: #06627b;
+    --accent-ok: #16724d;
+    --accent-warn: #895500;
+    --accent-danger: #b42332;
+    --accent-danger-text: #b42332;
+    --text-on-primary: #ffffff;
     --logo-bg: #eef6ff;
-    --primary-soft: rgba(34, 184, 232, 0.14);
-    --ok-soft: rgba(52, 211, 153, 0.15);
-    --warn-soft: rgba(251, 191, 36, 0.15);
-    --danger-soft: rgba(248, 113, 113, 0.15);
-    --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --primary-soft: rgba(8, 118, 148, 0.12);
+    --ok-soft: rgba(22, 114, 77, 0.12);
+    --warn-soft: rgba(137, 85, 0, 0.12);
+    --danger-soft: rgba(180, 35, 50, 0.1);
+    --shadow: 0 8px 24px rgba(27, 56, 66, 0.12);
     --transparent: transparent;
     --radius-card: 20px;
     --radius-control: 12px;
@@ -217,6 +217,28 @@ svg {
     font-size: 0.87rem;
     font-weight: 600;
     transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.nav-icon {
+    position: relative;
+    display: inline-flex;
+}
+
+.alert-badge {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    z-index: 1;
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--bg-elevated);
+    border-radius: 50%;
+    background: var(--accent-danger);
+    box-shadow: 0 0 0 1px rgba(180, 35, 50, 0.2);
+}
+
+.alert-badge[hidden] {
+    display: none;
 }
 
 .nav-link svg {
@@ -687,6 +709,18 @@ svg {
 
 /* Chart */
 .chart-panel {
+    --bg-elevated: #103f4c;
+    --surface: #14505f;
+    --surface-hover: #1a6072;
+    --surface-input: #0e3a46;
+    --border: #2a7384;
+    --text: #e8f6f9;
+    --text-muted: #9cc7d1;
+    --primary: #22b8e8;
+    --primary-hover: #4cc9f0;
+    --primary-soft: rgba(34, 184, 232, 0.14);
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    color: var(--text);
     margin-top: 20px;
     padding: 22px 24px 20px;
 }
@@ -928,6 +962,35 @@ svg {
     color: var(--text-muted);
     font-size: 0.83rem;
     line-height: 1.55;
+}
+
+.alert-content {
+    min-width: 0;
+    flex: 1;
+}
+
+.alert-dismiss {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+    place-items: center;
+    margin-left: auto;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.alert-dismiss:hover {
+    border-color: var(--accent-danger);
+    background: var(--danger-soft);
+    color: var(--accent-danger);
 }
 
 .alert-list-heading {

@@ -77,6 +77,7 @@ class IrrigaSenseSerial {
         this.mensagemConfiguracao = document.getElementById("mensagemConfiguracao");
         this.alertaAtual = document.getElementById("alertaAtual");
         this.alertasRecentes = document.getElementById("alertasRecentes");
+        this.alertBadge = document.getElementById("alertBadge");
         this.vazaoMinima = document.getElementById("vazaoMinima");
         this.vazaoMaxima = document.getElementById("vazaoMaxima");
         this.modoSimulacaoInput = document.getElementById("modoSimulacao");
@@ -337,6 +338,13 @@ class IrrigaSenseSerial {
             this.salvarConfiguracaoSupabase();
         });
 
+        [this.alertaAtual, this.alertasRecentes].forEach((container) => {
+            container?.addEventListener("click", (event) => {
+                const botao = event.target.closest?.(".alert-dismiss");
+                if (botao) this.removerAlerta(botao.dataset.alertIndex);
+            });
+        });
+
         this.navLinks?.forEach((link) => {
             link.addEventListener("click", (event) => {
                 event.preventDefault();
@@ -346,13 +354,28 @@ class IrrigaSenseSerial {
         });
 
         this.modoSimulacaoInput?.addEventListener("change", () => {
-            this.modoSimulacao = this.modoSimulacaoInput.checked;
+            const modoSolicitado = this.modoSimulacaoInput.checked;
+            if (modoSolicitado && this.conectado) {
+                this.modoSimulacaoInput.checked = false;
+                this.mostrarMensagem("Desconecte o ESP32 antes de ativar o modo de simulação.", "info");
+                return;
+            }
+
+            if (!modoSolicitado && this.modoSimulacao && this.bombaLigada) {
+                this.desligarBombaSimulada();
+            }
+
+            this.modoSimulacao = modoSolicitado;
             this.atualizarModoSimulacao();
             if (this.modoSimulacao && !this.conectado) {
                 this.iniciarSimulacao();
             } else {
                 this.pararSimulacao();
             }
+            [this.botaoConectar, this.botaoConectarConfig].filter(Boolean).forEach((botao) => {
+                botao.disabled = this.conectado || this.modoSimulacao;
+            });
+            this.atualizarEstadoBomba(this.bombaLigada);
         });
 
         if (navigator.serial) {
@@ -405,7 +428,7 @@ class IrrigaSenseSerial {
 
         const botoesConectar = [this.botaoConectar, this.botaoConectarConfig].filter(Boolean);
         botoesConectar.forEach((botao) => {
-            botao.disabled = estado;
+            botao.disabled = estado || this.modoSimulacao;
         });
 
         this.atualizarEstadoBomba(this.bombaLigada);
@@ -418,14 +441,15 @@ class IrrigaSenseSerial {
             if (el) el.textContent = statusTexto;
         });
 
+        const podeControlarBomba = (this.modoSimulacao && !this.conectado) || (this.conectado && this.dispositivoReconhecido);
         const botoesLigar = [this.botaoLigar, this.botaoLigarConfig].filter(Boolean);
         botoesLigar.forEach((botao) => {
-            botao.disabled = !this.conectado || !this.dispositivoReconhecido || this.bombaLigada;
+            botao.disabled = !podeControlarBomba || this.bombaLigada;
         });
 
         const botoesDesligar = [this.botaoDesligar, this.botaoDesligarConfig].filter(Boolean);
         botoesDesligar.forEach((botao) => {
-            botao.disabled = !this.conectado || !this.dispositivoReconhecido || !this.bombaLigada;
+            botao.disabled = !podeControlarBomba || !this.bombaLigada;
         });
     }
 
@@ -525,31 +549,31 @@ class IrrigaSenseSerial {
 
         this.timerSimulacao = window.setInterval(() => {
             if (this.conectado || !this.modoSimulacao) return;
-            const incremento = (Math.random() * 1.8) + 0.3;
-            const vazao = Number(Math.max(0, this.bombaLigada ? incremento : 0).toFixed(2));
+            const bombaLigada = this.bombaLigada;
+            const vazao = bombaLigada ? Number(((Math.random() * 1.8) + 0.3).toFixed(2)) : 0;
             const state = {
                 tipo: "telemetria",
-                bombaLigada: this.bombaLigada,
+                bombaLigada,
                 vazaoLMin: vazao,
-                volumeSessaoL: Number((this.volumeSessaoL + (vazao / 60) * 1.5).toFixed(2)),
-                tempoMs: this.bombaLigada ? this.tempoSessaoMs + 2000 : this.tempoSessaoMs,
+                volumeSessaoL: bombaLigada ? Number((this.volumeSessaoL + (vazao / 60) * 1.5).toFixed(2)) : this.volumeSessaoL,
+                tempoMs: bombaLigada ? this.tempoSessaoMs + 2000 : this.tempoSessaoMs,
             };
-
-            if (!this.bombaLigada && Math.random() > 0.6) {
-                this.bombaLigada = true;
-                this.tempoSessaoMs = 0;
-                this.volumeSessaoL = 0;
-                this.historicoVazao = [];
-                this.vazaoMedia = 0;
-            }
-
-            if (this.bombaLigada) {
-                this.tempoSessaoMs += 2000;
-                this.volumeSessaoL = Number((this.volumeSessaoL + (vazao / 60) * 1.5).toFixed(2));
-            }
 
             this.receberDados(state);
         }, 2000);
+    }
+
+    desligarBombaSimulada() {
+        if (!this.bombaLigada) return;
+
+        this.receberDados({
+            tipo: "telemetria",
+            bombaLigada: false,
+            vazaoLMin: 0,
+            volumeSessaoL: this.volumeSessaoL,
+            tempoMs: this.tempoSessaoMs,
+        });
+        this.salvarSessaoNoSupabase("finalizada");
     }
 
     pararSimulacao() {
@@ -799,6 +823,15 @@ class IrrigaSenseSerial {
     }
 
     async ligarBomba() {
+        if (this.modoSimulacao && !this.conectado) {
+            if (this.bombaLigada) return;
+            this.mostrarMensagem("", "error");
+            this.atualizarEstadoBomba(true);
+            this.iniciarNovaSessao();
+            this.atualizarInterface();
+            return;
+        }
+
         if (!this.conectado) {
             this.mostrarMensagem("Conecte o ESP32 antes de ligar a bomba.", "error");
             return;
@@ -807,6 +840,11 @@ class IrrigaSenseSerial {
     }
 
     async desligarBomba() {
+        if (this.modoSimulacao && !this.conectado) {
+            this.desligarBombaSimulada();
+            return;
+        }
+
         if (!this.conectado) {
             this.mostrarMensagem("Conecte o ESP32 antes de desligar a bomba.", "error");
             return;
@@ -988,10 +1026,23 @@ class IrrigaSenseSerial {
 
         const tipoClass = ultimo.tipo === "alto" ? "alert" : "warning";
         this.alertaAtual.className = `alert-banner ${tipoClass}`;
-        this.alertaAtual.innerHTML = `<span class="alert-icon">⚠</span><div><strong>${ultimo.titulo}</strong><p>${ultimo.descricao}</p></div>`;
+        this.alertaAtual.innerHTML = `<span class="alert-icon">⚠</span><div class="alert-content"><strong>${ultimo.titulo}</strong><p>${ultimo.descricao}</p></div>`;
+        this.alertaAtual.appendChild(this.criarBotaoFecharAlerta(ultimo, 0));
+    }
+
+    criarBotaoFecharAlerta(alerta, indice) {
+        const botao = document.createElement("button");
+        botao.className = "alert-dismiss";
+        botao.type = "button";
+        botao.title = "Remover alerta";
+        botao.setAttribute("aria-label", `Remover alerta: ${alerta.titulo}`);
+        botao.dataset.alertIndex = String(indice);
+        botao.textContent = "×";
+        return botao;
     }
 
     renderizarAlertas() {
+        this.atualizarIndicadorAlertas();
         if (!this.alertasRecentes) return;
 
         this.alertasRecentes.innerHTML = "";
@@ -999,16 +1050,17 @@ class IrrigaSenseSerial {
         if (!this.alertas.length) {
             this.alertasRecentes.innerHTML = '<div class="empty-state">Nenhum alerta registrado.</div>';
             this.atualizarBannerAlerta();
+            this.salvarAlertas();
             return;
         }
 
-        this.alertas.slice(0, 8).forEach((alerta) => {
+        this.alertas.slice(0, 8).forEach((alerta, indice) => {
             const item = document.createElement("div");
             const tipoClasse = alerta.tipo === "alto" ? "alert" : "warning";
             item.className = `alert-item ${tipoClasse}`;
             item.innerHTML = `
                 <div class="alert-mark">⚠</div>
-                <div>
+                <div class="alert-content">
                     <h4>${alerta.titulo}</h4>
                     <p>${alerta.descricao}</p>
                     <div class="alert-meta">
@@ -1017,11 +1069,25 @@ class IrrigaSenseSerial {
                     </div>
                 </div>
             `;
+            item.appendChild(this.criarBotaoFecharAlerta(alerta, indice));
             this.alertasRecentes.appendChild(item);
         });
 
         this.atualizarBannerAlerta();
         this.salvarAlertas();
+    }
+
+    removerAlerta(indice) {
+        const indiceAlerta = Number(indice);
+        if (!Number.isInteger(indiceAlerta) || indiceAlerta < 0 || indiceAlerta >= this.alertas.length) return;
+
+        this.alertas.splice(indiceAlerta, 1);
+        this.renderizarAlertas();
+    }
+
+    atualizarIndicadorAlertas() {
+        if (!this.alertBadge) return;
+        this.alertBadge.hidden = this.alertas.length === 0;
     }
 
     salvarAlertas() {
@@ -1045,18 +1111,36 @@ class IrrigaSenseSerial {
             });
         }
 
-        if (window.AudioContext || window.webkitAudioContext) {
-            const AudioCtor = window.AudioContext || window.webkitAudioContext;
-            const audioContext = new AudioCtor();
-            const oscilador = audioContext.createOscillator();
-            const ganho = audioContext.createGain();
-            oscilador.type = "square";
-            oscilador.frequency.value = alerta.tipo === "alto" ? 760 : 480;
-            ganho.gain.value = 0.03;
-            oscilador.connect(ganho);
-            ganho.connect(audioContext.destination);
-            oscilador.start();
-            oscilador.stop(audioContext.currentTime + 0.12);
+        const AudioCtor = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtor) {
+            try {
+                const audioContext = new AudioCtor();
+                const oscilador = audioContext.createOscillator();
+                const ganho = audioContext.createGain();
+                oscilador.type = "square";
+                oscilador.frequency.value = alerta.tipo === "alto" ? 760 : 480;
+                ganho.gain.value = 0.08;
+                oscilador.connect(ganho);
+                ganho.connect(audioContext.destination);
+                oscilador.onended = () => {
+                    void audioContext.close();
+                };
+
+                const iniciarSom = () => {
+                    oscilador.start();
+                    oscilador.stop(audioContext.currentTime + 0.12);
+                };
+
+                if (audioContext.state === "suspended") {
+                    void audioContext.resume().then(iniciarSom).catch(() => {
+                        void audioContext.close();
+                    });
+                } else {
+                    iniciarSom();
+                }
+            } catch (erro) {
+                console.warn("Não foi possível reproduzir o som do alerta:", erro);
+            }
         }
     }
 
